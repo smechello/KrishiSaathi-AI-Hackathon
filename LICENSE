@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 KrishiSaathi Team - AWS AI for Bharat Hackathon 2026
+Copyright (c) 2026 reddynalamari
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,20 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Additional Acknowledgments:
-
-This project is developed for the AWS AI for Bharat Hackathon 2026 and uses
-various AWS services including Amazon Bedrock, Amazon Bedrock Knowledge Bases,
-and other AWS technologies.
-
-The agricultural knowledge and data used in this system are sourced from:
-- Indian Council of Agricultural Research (ICAR)
-- India Meteorological Department (IMD)
-- National Agricultural Market (eNAM)
-- Various state agricultural departments and research institutions
-
-This software is intended to support Indian farmers and promote sustainable
-agricultural practices in alignment with UN Sustainable Development Goals.
