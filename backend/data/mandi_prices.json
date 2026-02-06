@@ -1,0 +1,11 @@
+{
+  "mandi_prices": [
+    {
+      "date": "2026-02-06",
+      "crop": "Wheat",
+      "market": "Delhi",
+      "price_min": 2100,
+      "price_max": 2300
+    }
+  ]
+}

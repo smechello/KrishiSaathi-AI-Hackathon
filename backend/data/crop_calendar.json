@@ -1,0 +1,11 @@
+{
+  "crop_calendar": [
+    {
+      "crop": "Wheat",
+      "season": "Rabi (Winter)",
+      "sowing_month": "October-November",
+      "harvest_month": "March-April",
+      "duration_days": 150
+    }
+  ]
+}

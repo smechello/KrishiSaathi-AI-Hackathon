@@ -1,0 +1,10 @@
+{
+  "schemes": [
+    {
+      "id": 1,
+      "name": "PM-KISAN",
+      "type": "Income Support",
+      "description": "Direct income support to farmers"
+    }
+  ]
+}

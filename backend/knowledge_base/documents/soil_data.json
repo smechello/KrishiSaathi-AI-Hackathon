@@ -1,0 +1,16 @@
+{
+  "soil_types": [
+    {
+      "type": "Black Soil (Regur)",
+      "characteristics": ["High clay content", "Good water retention", "Nutrient-rich"],
+      "crops_suitable": ["Cotton", "Sugarcane", "Jowar"],
+      "care": ["Manage water logging", "Add organic matter", "Monitor drainage"]
+    },
+    {
+      "type": "Red Soil",
+      "characteristics": ["High iron oxide content", "Well-drained", "Low in fertility"],
+      "crops_suitable": ["Groundnuts", "Pulses", "Maize"],
+      "care": ["Add lime for acidic soils", "Increase organic matter", "Use NPK fertilizers"]
+    }
+  ]
+}

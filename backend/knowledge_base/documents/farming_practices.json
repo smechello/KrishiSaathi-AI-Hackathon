@@ -1,0 +1,16 @@
+{
+  "practices": [
+    {
+      "practice": "Crop Rotation",
+      "description": "Growing different crops in sequence on same land",
+      "benefits": ["Reduces soil depletion", "Controls pests", "Improves soil health"],
+      "crops_suitable": ["All crops"]
+    },
+    {
+      "practice": "Conservation Agriculture",
+      "description": "Minimal soil disturbance with crop residue retention",
+      "benefits": ["Improves soil structure", "Reduces erosion", "Saves water"],
+      "crops_suitable": ["Cereals", "Pulses"]
+    }
+  ]
+}

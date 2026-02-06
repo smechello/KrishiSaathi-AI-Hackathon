@@ -1,0 +1,18 @@
+{
+  "market_data": [
+    {
+      "crop": "Wheat",
+      "market": "Delhi APMC",
+      "price_per_quintal": "₹2100-2300",
+      "updated_date": "2026-02-06",
+      "trend": "Stable"
+    },
+    {
+      "crop": "Rice",
+      "market": "Mumbai APMC",
+      "price_per_quintal": "₹3000-3200",
+      "updated_date": "2026-02-06",
+      "trend": "Upward"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemes": [
+    {
+      "name": "Prime Minister Kisan Samman Nidhi (PM-KISAN)",
+      "shortName": "PM-KISAN",
+      "description": "Income support scheme for all farmers",
+      "benefit": "₹6,000 per year in 3 instalments",
+      "eligibility": ["All farmers", "Landholding < 2 hectares"],
+      "documents": ["Aadhar", "Bank account", "Land records"]
+    },
+    {
+      "name": "Pradhan Mantri Fasal Bima Yojana",
+      "shortName": "PMFBY",
+      "description": "Crop insurance scheme",
+      "benefit": "Compensation for crop loss due to natural calamities",
+      "eligibility": ["All farmers", "Loanee and non-loanee"],
+      "documents": ["Aadhar", "Land records", "Bank details"]
+    }
+  ]
+}

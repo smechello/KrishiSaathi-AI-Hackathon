@@ -1,0 +1,18 @@
+{
+  "diseases": [
+    {
+      "name": "Early Blight",
+      "crop": "Potato",
+      "symptoms": ["Brown spots with concentric rings", "Yellow halo around spots", "Affects older leaves first"],
+      "treatment": ["Remove infected leaves", "Apply fungicide", "Improve air circulation"],
+      "prevention": ["Use resistant varieties", "Crop rotation", "Proper spacing"]
+    },
+    {
+      "name": "Powdery Mildew",
+      "crop": "Wheat",
+      "symptoms": ["White powdery coating on leaves", "Stunted growth", "Reduced yield"],
+      "treatment": ["Sulfur spray", "Fungicide application", "Remove affected parts"],
+      "prevention": ["Adequate spacing", "Avoid overhead watering", "Improve ventilation"]
+    }
+  ]
+}
