@@ -1,16 +1,454 @@
 {
-  "practices": [
+  "farming_practices": [
     {
-      "practice": "Crop Rotation",
-      "description": "Growing different crops in sequence on same land",
-      "benefits": ["Reduces soil depletion", "Controls pests", "Improves soil health"],
-      "crops_suitable": ["All crops"]
+      "id": "FP001",
+      "category": "Land Preparation",
+      "name": "Summer Deep Ploughing",
+      "description": "Deep ploughing (20-25 cm depth) during April-May after Rabi harvest. Exposes subsoil to sun, kills hibernating pests and pupae, breaks hard pan, and improves water infiltration. Essential practice for Telangana's red and black soils.",
+      "benefits": ["Kills soil-borne pests and diseases", "Improves soil aeration and structure", "Breaks hard pan in red soils", "Increases water holding capacity by 15-20%", "Reduces weed seed bank"],
+      "season": "Summer (April-May)",
+      "region": "All Telangana districts"
     },
     {
-      "practice": "Conservation Agriculture",
-      "description": "Minimal soil disturbance with crop residue retention",
-      "benefits": ["Improves soil structure", "Reduces erosion", "Saves water"],
-      "crops_suitable": ["Cereals", "Pulses"]
+      "id": "FP002",
+      "category": "Land Preparation",
+      "name": "Raised Bed Farming",
+      "description": "Creating raised beds of 90-120 cm width with furrows for drainage. Ideal for Telangana's black cotton soils that are prone to waterlogging. Reduces seed rot, improves root development, and allows better drainage during heavy monsoon rains.",
+      "benefits": ["Prevents waterlogging in black soils", "Reduces seed rot by 30-40%", "Better root aeration", "Saves 20-30% irrigation water", "Easy intercultural operations"],
+      "season": "Kharif and Rabi",
+      "region": "Black soil areas: Adilabad, Nizamabad, Karimnagar, Medak"
+    },
+    {
+      "id": "FP003",
+      "category": "Water Management",
+      "name": "System of Rice Intensification (SRI)",
+      "description": "Transplanting single young seedlings (8-12 days old) at wider spacing (25x25 cm) with alternate wetting and drying irrigation. Proven to increase yield by 20-30% with 30-40% less water in Telangana. Promoted by PJTSAU.",
+      "benefits": ["20-30% higher yield than conventional method", "30-40% water saving", "Reduced seed rate (2 kg/acre vs 25 kg)", "Stronger root system and more tillers", "Lower methane emissions"],
+      "season": "Kharif (June-July) and Rabi (November-December)",
+      "region": "All Telangana rice-growing districts: Warangal, Nizamabad, Karimnagar, Khammam"
+    },
+    {
+      "id": "FP004",
+      "category": "Water Management",
+      "name": "Drip Irrigation for Cotton",
+      "description": "Installing drip irrigation system for cotton at 150 cm row spacing with inline drippers at 60 cm spacing. Saves 40-50% water compared to flood irrigation. Government subsidy available under TMIP for micro-irrigation.",
+      "benefits": ["40-50% water saving", "15-20% yield increase", "Reduced weed growth", "Fertigation possible for precise nutrient delivery", "Subsidy up to 90% under TMIP for small farmers"],
+      "season": "Kharif (June-December)",
+      "region": "Cotton-growing areas: Adilabad, Khammam, Nalgonda, Karimnagar"
+    },
+    {
+      "id": "FP005",
+      "category": "Water Management",
+      "name": "Alternate Wetting and Drying (AWD) in Rice",
+      "description": "Instead of continuous flooding, allow rice fields to dry until hairline cracks appear, then re-irrigate. Reduces water use by 20-30% without yield loss. Install a perforated pipe (field water tube) to monitor water level.",
+      "benefits": ["20-30% water saving", "Reduced methane emissions", "Stronger root system", "Better nutrient uptake", "No yield penalty if managed properly"],
+      "season": "Kharif and Rabi rice seasons",
+      "region": "All irrigated rice areas of Telangana"
+    },
+    {
+      "id": "FP006",
+      "category": "Water Management",
+      "name": "Farm Pond (Rythu Kundam)",
+      "description": "Digging a farm pond of 10x10x3 meters to collect and store rainwater runoff. Provides supplemental irrigation during dry spells. Government support available under Mission Kakatiya and MGNREGA. Critical for dryland farming in Telangana.",
+      "benefits": ["Supplemental irrigation during dry spells", "Groundwater recharge", "Fish culture possible as additional income", "Government subsidy up to Rs 75,000", "Can irrigate 1-2 acres of vegetables"],
+      "season": "Year-round benefit, best constructed in summer",
+      "region": "Rainfed areas: Mahbubnagar, Nalgonda, Wanaparthy, Nagarkurnool"
+    },
+    {
+      "id": "FP007",
+      "category": "Soil Management",
+      "name": "Green Manuring with Dhaincha",
+      "description": "Growing Sesbania aculeata (dhaincha) or Crotalaria juncea (sunhemp) for 45-60 days during pre-Kharif and incorporating into soil before main crop. Adds 25-30 kg nitrogen per acre. Essential for Telangana's nitrogen-deficient red soils.",
+      "benefits": ["Adds 25-30 kg nitrogen per acre", "Improves soil organic carbon", "Enhances soil moisture retention", "Reduces need for chemical nitrogen by 25-30%", "Suppresses weed growth"],
+      "season": "Pre-Kharif (April-June)",
+      "region": "Red soil areas: Warangal, Nalgonda, Mahbubnagar, Rangareddy"
+    },
+    {
+      "id": "FP008",
+      "category": "Soil Management",
+      "name": "Soil Testing and Balanced Fertilization",
+      "description": "Getting soil tested from nearest Soil Testing Laboratory (available free under Soil Health Card scheme) and applying fertilizers based on recommendations. Most Telangana soils are deficient in nitrogen, phosphorus, zinc, and boron.",
+      "benefits": ["Saves 20-30% on fertilizer costs", "Avoids over-application of nutrients", "Corrects specific deficiencies", "Improves crop quality and yield", "Free soil testing through government labs"],
+      "season": "Before Kharif and Rabi seasons",
+      "region": "All Telangana districts - nearest Soil Testing Lab in each district"
+    },
+    {
+      "id": "FP009",
+      "category": "Soil Management",
+      "name": "Vermicomposting",
+      "description": "Producing nutrient-rich vermicompost from farm waste, cow dung, and crop residues using earthworms (Eisenia fetida). Each unit can produce 2-3 tonnes of vermicompost per year. Very suitable for Telangana's organic-matter-depleted red soils.",
+      "benefits": ["Produces nutrient-rich organic manure", "Reduces chemical fertilizer dependency", "Improves soil structure and water retention", "Additional income from selling surplus vermicompost", "Government subsidy available for setting up units"],
+      "season": "Year-round production",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP010",
+      "category": "Soil Management",
+      "name": "Gypsum Application for Black Soils",
+      "description": "Applying gypsum (calcium sulphate) at 500-1000 kg per acre to alkaline black cotton soils. Improves soil structure, reduces crusting, enhances water infiltration, and provides calcium and sulphur nutrients.",
+      "benefits": ["Reduces soil alkalinity", "Improves water infiltration in heavy soils", "Reduces surface crusting", "Supplies calcium and sulphur", "Improves cotton lint quality"],
+      "season": "Before Kharif sowing (May-June)",
+      "region": "Black soil areas: Adilabad, Nizamabad, Karimnagar, Medak"
+    },
+    {
+      "id": "FP011",
+      "category": "Crop Management",
+      "name": "Integrated Pest Management (IPM) in Cotton",
+      "description": "Combining cultural, biological, and need-based chemical methods for pest management in cotton. Includes border crop of maize, bird perches, pheromone traps, Trichogramma releases, and targeted sprays only when pest crosses ETL.",
+      "benefits": ["50-60% reduction in pesticide use", "Lower cost of cultivation", "Safer produce and environment", "Better natural enemy conservation", "Higher net profit per acre"],
+      "season": "Kharif cotton season (June-January)",
+      "region": "All cotton-growing districts of Telangana"
+    },
+    {
+      "id": "FP012",
+      "category": "Crop Management",
+      "name": "Seed Treatment Before Sowing",
+      "description": "Treating seeds with fungicide (Carbendazim/Thiram), insecticide (Imidacloprid/Thiamethoxam), and bio-agent (Trichoderma viride) before sowing. Protects seedlings from soil-borne diseases and early pest damage.",
+      "benefits": ["Protects against soil-borne fungal diseases", "Controls early sucking pest damage", "Improves germination by 10-15%", "Low cost and high benefit ratio", "Reduces need for early-stage sprays"],
+      "season": "Before every sowing",
+      "region": "All Telangana districts for all crops"
+    },
+    {
+      "id": "FP013",
+      "category": "Crop Management",
+      "name": "Intercropping in Red Gram",
+      "description": "Growing red gram (pigeon pea) as main crop with soybean, maize, or sorghum as intercrop in 1:2 or 1:3 ratio. Maximizes land use, provides early income from intercrop, and reduces pest/disease buildup.",
+      "benefits": ["30-40% higher land equivalent ratio", "Early income from intercrop", "Better pest management", "Soil fertility improvement with legume", "Risk diversification against crop failure"],
+      "season": "Kharif (June-July)",
+      "region": "Mahbubnagar, Nalgonda, Adilabad, Karimnagar"
+    },
+    {
+      "id": "FP014",
+      "category": "Crop Management",
+      "name": "Mulching in Vegetable Cultivation",
+      "description": "Using black or silver plastic mulch or paddy straw mulch for vegetable crops like tomato, chilli, and brinjal. Conserves soil moisture, suppresses weeds, reduces soil temperature fluctuation, and reflects light to deter whiteflies (silver mulch).",
+      "benefits": ["60-70% weed reduction", "30-40% water saving", "Earlier harvest by 7-10 days", "Cleaner produce (no soil splash)", "Reduced pest incidence with silver mulch"],
+      "season": "Year-round for vegetables",
+      "region": "Vegetable-growing areas: Rangareddy, Mahbubnagar, Warangal, Medak"
+    },
+    {
+      "id": "FP015",
+      "category": "Crop Management",
+      "name": "Staking and Training in Tomato",
+      "description": "Supporting tomato plants with bamboo stakes or trellises to keep fruits off the ground. Improves air circulation (reduces disease), makes spraying effective, allows uniform ripening, and improves fruit quality.",
+      "benefits": ["30-40% reduction in fruit rot", "Better air circulation reduces fungal diseases", "Easier harvesting and spraying", "Improved fruit color and quality", "Higher market price for clean fruits"],
+      "season": "Rabi tomato season (September-March)",
+      "region": "All tomato-growing areas of Telangana"
+    },
+    {
+      "id": "FP016",
+      "category": "Crop Management",
+      "name": "Thinning and Gap Filling",
+      "description": "Removing excess seedlings to maintain optimal plant population and filling gaps where germination failed. Critical for crops like cotton (1 plant/hill), maize (1 plant/hill), and direct-seeded rice.",
+      "benefits": ["Optimal plant population for maximum yield", "Reduced competition for nutrients and light", "Better air circulation reduces disease", "Uniform crop stand", "More effective pest management"],
+      "season": "15-20 days after sowing",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP017",
+      "category": "Organic Farming",
+      "name": "Jeevamrutham Preparation",
+      "description": "Preparing liquid bio-fertilizer from cow dung (10 kg), cow urine (10 L), jaggery (2 kg), pulse flour (2 kg), and handful of soil from bund in 200 L water. Fermented for 48 hours. Applied through irrigation at 200 L/acre.",
+      "benefits": ["Enhances beneficial soil microorganism population", "Provides plant growth hormones", "Zero cost input (uses farm waste)", "Improves soil biological activity", "Suitable for all crops"],
+      "season": "Year-round, apply every 15 days",
+      "region": "All Telangana districts - promoted under PKVY scheme"
+    },
+    {
+      "id": "FP018",
+      "category": "Organic Farming",
+      "name": "Neem-Based Pest Management",
+      "description": "Using neem in multiple forms: Neem oil (3-5%), neem seed kernel extract (NSKE 5%), neem cake (200 kg/acre in soil), and neem-coated urea. Effective against 200+ insect pest species. Safe for beneficial insects.",
+      "benefits": ["Effective against wide range of pests", "Safe for natural enemies and pollinators", "No pest resistance development", "Neem cake also works as fertilizer", "Accepted in organic certification"],
+      "season": "As needed throughout crop season",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP019",
+      "category": "Organic Farming",
+      "name": "Panchagavya Application",
+      "description": "Preparing Panchagavya from five cow products (dung, urine, milk, curd, ghee) plus jaggery, banana, and coconut water. Fermented for 21 days. Spray at 3% concentration or apply through drip at 50 L/acre.",
+      "benefits": ["Acts as plant growth promoter", "Enhances resistance to pests and diseases", "Improves fruit set and quality", "Rich in beneficial microorganisms", "Low cost and easy to prepare"],
+      "season": "Apply at critical growth stages",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP020",
+      "category": "Organic Farming",
+      "name": "Composting Crop Residues (Instead of Burning)",
+      "description": "Converting rice straw, cotton stalks, and other crop residues into compost using decomposing culture (Trichoderma + PROM). Takes 60-90 days. Avoids air pollution from burning and returns nutrients to soil.",
+      "benefits": ["Prevents air pollution from stubble burning", "Returns nutrients and organic matter to soil", "Improves soil structure", "Government penalty for burning crop residues", "Trichoderma culture available free from KVK"],
+      "season": "Post-harvest (November-January for Kharif, April-May for Rabi)",
+      "region": "Rice and cotton areas of Telangana"
+    },
+    {
+      "id": "FP021",
+      "category": "Nutrient Management",
+      "name": "Zinc Application in Rice",
+      "description": "Applying zinc sulphate at 10 kg/acre as basal or 0.5% foliar spray at tillering and panicle initiation. Zinc deficiency is widespread in Telangana paddy soils, causing reduced tillering and poor grain filling.",
+      "benefits": ["Increases rice yield by 10-15%", "Improves grain quality and biofortification", "Corrects widespread zinc deficiency in Telangana", "Low cost with high returns", "Reduces spikelet sterility"],
+      "season": "During rice transplanting and active growth",
+      "region": "All Telangana rice-growing areas, especially Warangal, Nizamabad"
+    },
+    {
+      "id": "FP022",
+      "category": "Nutrient Management",
+      "name": "Fertigation in Drip Irrigation",
+      "description": "Applying water-soluble fertilizers through drip irrigation system. Nutrients delivered directly to root zone. Ideal for chilli, turmeric, vegetables, and fruit crops. Reduces fertilizer use by 25-30%.",
+      "benefits": ["25-30% fertilizer saving", "Higher nutrient use efficiency", "Uniform distribution of nutrients", "Reduced labor for fertilizer application", "Can apply micronutrients easily"],
+      "season": "Throughout crop growth",
+      "region": "Areas with drip irrigation systems across Telangana"
+    },
+    {
+      "id": "FP023",
+      "category": "Nutrient Management",
+      "name": "Biofertilizer Application (Rhizobium + PSB)",
+      "description": "Seed treatment with Rhizobium culture for legumes (red gram, bengal gram, groundnut, soybean) and Phosphate Solubilizing Bacteria (PSB) for all crops. Available from PJTSAU and KVKs in Telangana.",
+      "benefits": ["Fixes 20-30 kg nitrogen/acre (Rhizobium)", "Solubilizes fixed phosphorus in soil", "Reduces chemical fertilizer need by 20-25%", "Improves soil health", "Available free or at subsidized rates from KVK"],
+      "season": "At sowing time",
+      "region": "All Telangana districts - available from 31 KVKs"
+    },
+    {
+      "id": "FP024",
+      "category": "Nutrient Management",
+      "name": "Foliar Spray of DAP and Micronutrients",
+      "description": "Spraying 2% DAP (di-ammonium phosphate) + micronutrient mixture (containing Zn, B, Fe, Mn) during critical growth stages. Cost-effective way to correct hidden hunger and boost yield in nutrient-deficient Telangana soils.",
+      "benefits": ["Quick correction of nutrient deficiency", "10-15% yield boost", "Effective when root uptake is limited", "Low cost (Rs 100-150 per spray)", "Suitable for all field crops"],
+      "season": "At flowering and grain filling stages",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP025",
+      "category": "Weed Management",
+      "name": "Integrated Weed Management in Rice",
+      "description": "Combining pre-emergence herbicide (Pretilachlor or Butachlor at 3 days after transplanting), one hand weeding at 25-30 DAT, and maintaining 5 cm standing water. Reduces weed competition by 85-90%.",
+      "benefits": ["85-90% weed control", "Saves 15-20 labor days per acre vs hand weeding alone", "Prevents yield loss of 15-40%", "Cost-effective compared to manual weeding only", "Integrates cultural, chemical, and manual methods"],
+      "season": "Kharif and Rabi rice",
+      "region": "All rice-growing areas of Telangana"
+    },
+    {
+      "id": "FP026",
+      "category": "Weed Management",
+      "name": "Stale Seed Bed Technique",
+      "description": "Preparing the field 15-20 days before sowing, irrigating to germinate weed seeds, then killing emerged weeds with Paraquat or shallow cultivation. Reduces weed population by 50-60% in the main crop.",
+      "benefits": ["50-60% reduction in weed population", "Reduces herbicide requirement during crop", "Depletes weed seed bank", "Especially useful for problematic weedy fields", "Simple and effective technique"],
+      "season": "Before Kharif and Rabi sowing",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP027",
+      "category": "Weed Management",
+      "name": "Mechanical Weeding with Power Weeder",
+      "description": "Using power weeder or cono-weeder in row crops for inter-row weed control. Efficient and reduces labor dependency. Custom Hiring Centers (CHCs) under government scheme provide equipment on rental.",
+      "benefits": ["Saves 50-60% labor cost vs hand weeding", "Faster coverage (1 acre in 3-4 hours)", "Loosens soil improving aeration", "Available on rent from CHCs", "Subsidy available on purchase under SMAM"],
+      "season": "15-25 DAS or DAT",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP028",
+      "category": "Harvest and Post-Harvest",
+      "name": "Proper Drying of Grains",
+      "description": "Drying harvested rice, maize, and pulses to safe moisture levels (12-14% for rice, 12% for maize, 10% for pulses) on clean threshing floors or using mechanical dryers. Prevents storage losses and aflatoxin contamination.",
+      "benefits": ["Prevents grain spoilage and mold growth", "Avoids aflatoxin contamination", "Reduces weight loss in storage by 5-10%", "Fetches better market price", "Essential for safe long-term storage"],
+      "season": "Post-harvest (varies by crop)",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP029",
+      "category": "Harvest and Post-Harvest",
+      "name": "Combine Harvester for Rice and Wheat",
+      "description": "Using combine harvester for timely harvesting of rice and wheat. Reduces harvest losses from 5-7% (manual) to 2-3%. Custom hiring available at Rs 1500-2000/acre. Critical during labor shortage periods.",
+      "benefits": ["Reduces harvest losses to 2-3%", "Completes harvesting in time", "Addresses labor shortage problem", "Combined operation of cutting and threshing", "Custom hiring available from CHCs"],
+      "season": "Kharif harvest (November-December), Rabi harvest (March-April)",
+      "region": "Rice-growing areas: Warangal, Nizamabad, Karimnagar, Khammam"
+    },
+    {
+      "id": "FP030",
+      "category": "Harvest and Post-Harvest",
+      "name": "Grading and Sorting Before Sale",
+      "description": "Cleaning, grading and sorting produce before taking to mandi. Chilli graded by size and color, turmeric by finger/bulb, groundnut by grade. Graded produce fetches 10-20% premium over ungraded lot.",
+      "benefits": ["10-20% price premium", "Better market acceptance", "Reduces buyer deductions", "Easier to meet e-NAM quality standards", "Higher returns for same quantity"],
+      "season": "At the time of marketing",
+      "region": "All Telangana mandis"
+    },
+    {
+      "id": "FP031",
+      "category": "Harvest and Post-Harvest",
+      "name": "Scientific Storage in Hermetic Bags",
+      "description": "Storing grains and pulses in triple-layer hermetic storage bags (like Purdue Improved Crop Storage - PICS bags). Creates airtight environment that kills storage pests without chemicals. One bag stores 50-100 kg.",
+      "benefits": ["Zero chemical storage - safe for consumption", "Kills storage insects through oxygen depletion", "Maintains grain quality for 6-12 months", "Prevents moisture uptake", "Low cost (Rs 50-100 per bag)"],
+      "season": "Post-harvest storage period",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP032",
+      "category": "Variety Selection",
+      "name": "Recommended Rice Varieties for Telangana",
+      "description": "Selecting PJTSAU-recommended rice varieties: RNR 15048 (Telangana Sona) for fine grain, KNM 118 for high yield, JGL 11470 for early duration, Bathukamma for medium-late. Match variety to season, soil, and irrigation availability.",
+      "benefits": ["Higher yield with adapted varieties", "Better disease resistance", "Suitable grain quality for local market", "Optimized duration for Telangana climate", "Certified seed available from TSSDC"],
+      "season": "Kharif and Rabi rice",
+      "region": "All rice-growing areas of Telangana"
+    },
+    {
+      "id": "FP033",
+      "category": "Variety Selection",
+      "name": "Recommended Cotton Varieties for Telangana",
+      "description": "Selecting approved Bt cotton hybrids for Telangana conditions. BGII hybrids with bollworm resistance. Consider fiber quality (staple length > 28mm), ginning outturn, and disease resistance. Consult PJTSAU recommendations.",
+      "benefits": ["Bollworm resistance reduces pesticide cost", "Higher lint quality for better price", "Adapted to local soil and climate", "Government-approved varieties ensure quality", "Better ginning percentage"],
+      "season": "Kharif cotton (June-July sowing)",
+      "region": "Cotton-growing areas: Adilabad, Khammam, Nalgonda, Warangal"
+    },
+    {
+      "id": "FP034",
+      "category": "Variety Selection",
+      "name": "Short-Duration Varieties for Dryland Areas",
+      "description": "Using short-duration (90-120 day) varieties of red gram, sorghum, and millets for rainfed dryland areas of Telangana. These varieties mature before moisture stress sets in and allow double cropping.",
+      "benefits": ["Escape terminal drought", "Allow second crop in rabi", "Lower water requirement", "Reduced input cost", "More reliable yield in rainfed conditions"],
+      "season": "Kharif season",
+      "region": "Dryland areas: Mahbubnagar, Nagarkurnool, Wanaparthy, Jogulamba Gadwal"
+    },
+    {
+      "id": "FP035",
+      "category": "Mechanization",
+      "name": "Laser Land Leveling",
+      "description": "Using laser-guided land leveler to achieve precise field leveling. Improves water distribution uniformity, saves 20-25% irrigation water, and improves crop stand. Available on custom hiring from CHCs.",
+      "benefits": ["20-25% water saving", "10-15% more cultivable area", "Uniform crop establishment", "Reduced waterlogging in low spots", "Better fertilizer use efficiency"],
+      "season": "Before Kharif and Rabi seasons",
+      "region": "All irrigated areas of Telangana"
+    },
+    {
+      "id": "FP036",
+      "category": "Mechanization",
+      "name": "Zero Tillage for Rabi Crops",
+      "description": "Sowing rabi crops (wheat, chickpea, mustard) directly into rice stubble without ploughing using zero-till seed drill. Saves time, fuel, and moisture. Allows timely sowing after delayed rice harvest.",
+      "benefits": ["Saves 3-4 tillage operations (Rs 3000-4000/acre)", "Retains soil moisture for better germination", "Allows timely sowing", "Reduces soil erosion", "Available on custom hire from CHCs"],
+      "season": "Rabi (November-December, after rice harvest)",
+      "region": "Rice-wheat/chickpea areas: Nizamabad, Karimnagar, Adilabad"
+    },
+    {
+      "id": "FP037",
+      "category": "Mechanization",
+      "name": "Drone Spraying for Pest Control",
+      "description": "Using agricultural drones for pesticide and fertilizer spraying. Covers 8-10 acres per hour compared to 1 acre by manual sprayer. Reduces chemical exposure to farmers. Custom hiring services now available in Telangana.",
+      "benefits": ["Covers 8-10 acres per hour", "Uniform spray coverage", "No chemical exposure to operator", "Can spray in tall crops like sugarcane", "Precision application reduces chemical wastage"],
+      "season": "As needed during crop season",
+      "region": "Emerging practice across Telangana, available in progressive farming areas"
+    },
+    {
+      "id": "FP038",
+      "category": "Protected Cultivation",
+      "name": "Polyhouse Vegetable Cultivation",
+      "description": "Growing high-value vegetables (capsicum, cucumber, tomato) in polyhouse/greenhouse structures. Government provides 50% subsidy under NHM. Year-round production with 3-5x higher yield per unit area than open field.",
+      "benefits": ["3-5x higher yield than open field", "Year-round production regardless of weather", "Premium prices for off-season produce", "50% subsidy under NHM for construction", "Controlled environment reduces disease"],
+      "season": "Year-round",
+      "region": "Peri-urban areas near Hyderabad, Warangal, Karimnagar"
+    },
+    {
+      "id": "FP039",
+      "category": "Protected Cultivation",
+      "name": "Shade Net for Nursery Raising",
+      "description": "Using 50% shade net for raising healthy vegetable seedlings (tomato, chilli, brinjal, cabbage, cauliflower) in pro-trays with cocopeat medium. Produces uniform, disease-free transplants.",
+      "benefits": ["Healthy and uniform transplants", "Reduced seedling mortality", "Protection from heavy rain and sun", "Disease-free seedlings", "Better crop stand and early maturity"],
+      "season": "Year-round nursery production",
+      "region": "All vegetable-growing areas of Telangana"
+    },
+    {
+      "id": "FP040",
+      "category": "Crop Diversification",
+      "name": "Turmeric as Intercrop in Mango Orchards",
+      "description": "Growing turmeric as intercrop in young mango orchards (1-6 years) utilizing the space between trees. Provides income during non-bearing years. Turmeric thrives in partial shade and benefits from mango tree windbreak.",
+      "benefits": ["Additional income during orchard establishment", "Optimal land utilization", "Turmeric tolerates partial shade", "Shared irrigation infrastructure", "Reduces orchard maintenance cost effectively"],
+      "season": "Kharif (June-July planting)",
+      "region": "Mango-growing areas: Rangareddy, Mahbubnagar, Medak"
+    },
+    {
+      "id": "FP041",
+      "category": "Crop Diversification",
+      "name": "Integrated Farming System",
+      "description": "Combining crop cultivation with dairy (2-3 cows), poultry (100-200 birds), fish culture (farm pond), vermicompost unit, and kitchen garden on a 2-5 acre holding. Waste from one component becomes input for another.",
+      "benefits": ["Year-round income stream", "Nutritional security for family", "Recycling of farm waste", "Reduced external input dependency", "Risk diversification against crop failure"],
+      "season": "Year-round",
+      "region": "All Telangana districts, especially small and marginal farmers"
+    },
+    {
+      "id": "FP042",
+      "category": "Crop Diversification",
+      "name": "Millets Promotion (Nutri-Cereals)",
+      "description": "Growing millets like jowar, bajra, foxtail millet, and finger millet in dryland areas. Growing demand as health food. Government promoting under National Millet Mission. Good for dryland Telangana with low water requirement.",
+      "benefits": ["Low water requirement (200-350 mm rainfall sufficient)", "Nutritionally superior (high fiber, minerals)", "Growing market demand as health food", "Government procurement and support under Millet Mission", "Suitable for climate change adaptation"],
+      "season": "Kharif (June-July) and Rabi (October-November)",
+      "region": "Dryland areas: Mahbubnagar, Nagarkurnool, Adilabad"
+    },
+    {
+      "id": "FP043",
+      "category": "Climate Adaptation",
+      "name": "Contingency Crop Planning for Delayed Monsoon",
+      "description": "Having backup crop plan if monsoon is delayed. If normal sowing window missed, switch to short-duration crops. E.g., if cotton sowing delayed beyond July 15, switch to maize or sunflower. PJTSAU issues contingency advisories.",
+      "benefits": ["Avoids total crop loss from delayed monsoon", "Optimizes available growing season", "Based on scientific recommendations from PJTSAU", "Ensures some harvest even in poor rainfall years", "Reduces financial risk"],
+      "season": "Kharif planning (June-August decision window)",
+      "region": "All rainfed areas of Telangana"
+    },
+    {
+      "id": "FP044",
+      "category": "Climate Adaptation",
+      "name": "Conservation Agriculture (Minimum Tillage + Residue Retention)",
+      "description": "Three principles: minimum soil disturbance, permanent soil cover with crop residues, and crop rotation. Builds soil organic carbon, conserves moisture, and makes farming more resilient to climate variability.",
+      "benefits": ["Builds soil organic carbon over time", "Conserves soil moisture", "Reduces erosion", "Lowers fuel and labor costs", "Climate change resilience"],
+      "season": "Year-round practice",
+      "region": "All Telangana districts, especially dryland areas"
+    },
+    {
+      "id": "FP045",
+      "category": "Climate Adaptation",
+      "name": "Crop Insurance under PMFBY",
+      "description": "Enrolling in Pradhan Mantri Fasal Bima Yojana through bank or CSC within notification period. Premium: 2% for Kharif, 1.5% for Rabi. Covers yield loss from drought, flood, pest, and disease. Mandatory for crop loan borrowers.",
+      "benefits": ["Financial protection against crop loss", "Very low premium (government subsidized)", "Covers all major natural calamities", "Technology-based claim settlement", "Available for all notified crops in Telangana"],
+      "season": "Enroll before sowing: Kharif (June-July), Rabi (October-November)",
+      "region": "All Telangana districts for notified crops"
+    },
+    {
+      "id": "FP046",
+      "category": "Marketing",
+      "name": "Selling Through e-NAM (Electronic National Agriculture Market)",
+      "description": "Registering on e-NAM portal and selling produce through electronic auction at registered mandis. Provides price transparency, wider buyer base, and competitive bidding. Active mandis in Telangana: Warangal, Nizamabad, Karimnagar, etc.",
+      "benefits": ["Transparent pricing through competitive bidding", "Wider buyer base across India", "Real-time price information", "Reduced intermediary costs", "Online payment settlement"],
+      "season": "During marketing of any agricultural produce",
+      "region": "All e-NAM registered mandis in Telangana"
+    },
+    {
+      "id": "FP047",
+      "category": "Marketing",
+      "name": "Farmer Producer Organization (FPO) for Collective Marketing",
+      "description": "Joining or forming a Farmer Producer Organization (FPO) for collective procurement of inputs and marketing of produce. Improves bargaining power. Government provides financial support of Rs 18 lakh per FPO.",
+      "benefits": ["Better bargaining power in market", "Bulk purchase of inputs at lower cost", "Access to institutional credit", "Government support of Rs 18 lakh per FPO", "Direct market access bypassing intermediaries"],
+      "season": "Year-round operation",
+      "region": "All Telangana districts - over 500 FPOs registered"
+    },
+    {
+      "id": "FP048",
+      "category": "Marketing",
+      "name": "Warehouse Receipt Finance",
+      "description": "Storing produce in government-registered warehouse and getting loan (up to 70% of value) against warehouse receipt. Allows farmers to wait for better prices without distress selling. Available through cooperative and commercial banks.",
+      "benefits": ["Avoids distress selling at harvest glut", "Loan against stored produce for immediate cash needs", "Scientific storage prevents post-harvest loss", "Sell when prices are favorable", "Interest rate subsidized for small farmers"],
+      "season": "Post-harvest period",
+      "region": "All districts with registered warehouses"
+    },
+    {
+      "id": "FP049",
+      "category": "Technology Adoption",
+      "name": "Using Crop Advisory Apps",
+      "description": "Using mobile apps like PJTSAU Crop Advisory, Kissan Call Center (1800-180-1551), and IFFCO Kisan for real-time crop advisories, weather alerts, market prices, and expert consultation in Telangana.",
+      "benefits": ["Real-time crop management advisories", "Weather-based alerts for spraying and harvesting", "Market price comparison across mandis", "Expert consultation at fingertips", "Available in Telugu and English"],
+      "season": "Year-round",
+      "region": "All Telangana districts"
+    },
+    {
+      "id": "FP050",
+      "category": "Technology Adoption",
+      "name": "Soil Health Card Based Nutrient Management",
+      "description": "Using Soil Health Card recommendations for precise fertilizer application. Each card provides field-specific nutrient recommendations for 6 nutrients (N, P, K, S, Zn, B). Cards issued every 2 years by government.",
+      "benefits": ["Field-specific fertilizer recommendations", "Saves 20-25% on fertilizer costs", "Prevents over-application of nutrients", "Improves soil health over time", "Free service from government"],
+      "season": "Before each cropping season",
+      "region": "All Telangana districts"
     }
   ]
 }

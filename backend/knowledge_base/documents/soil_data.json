@@ -1,16 +1,114 @@
 {
-  "soil_types": [
+  "soils": [
     {
-      "type": "Black Soil (Regur)",
-      "characteristics": ["High clay content", "Good water retention", "Nutrient-rich"],
-      "crops_suitable": ["Cotton", "Sugarcane", "Jowar"],
-      "care": ["Manage water logging", "Add organic matter", "Monitor drainage"]
+      "id": "SD001",
+      "type": "Black Cotton Soil (Regur)",
+      "local_name": "Nalla Regadi / Regur",
+      "description": "Deep black soil formed from basalt/Deccan trap rocks. Very fertile with high clay content and excellent moisture retention. Develops deep cracks when dry.",
+      "characteristics": {"ph_range": "7.2-8.5", "texture": "Heavy clay", "drainage": "Poor", "moisture_retention": "Very high", "organic_matter": "Medium to high"},
+      "suitable_crops": ["Cotton", "Sugarcane", "Jowar (Sorghum)", "Sunflower", "Groundnut", "Chilli", "Bengal Gram"],
+      "regions": ["Adilabad", "Nizamabad", "Karimnagar", "Medak", "Mahbubnagar", "Nalgonda"],
+      "nutrient_profile": {"nitrogen": "Low to medium", "phosphorus": "Medium", "potassium": "High", "calcium": "High", "iron": "Medium"},
+      "management_tips": ["Apply gypsum to improve drainage", "Avoid waterlogging during monsoon", "Green manuring with dhaincha or sunhemp", "Add organic matter to improve soil structure", "Ridges and furrows for better drainage"]
     },
     {
-      "type": "Red Soil",
-      "characteristics": ["High iron oxide content", "Well-drained", "Low in fertility"],
-      "crops_suitable": ["Groundnuts", "Pulses", "Maize"],
-      "care": ["Add lime for acidic soils", "Increase organic matter", "Use NPK fertilizers"]
+      "id": "SD002",
+      "type": "Red Soil (Chalka)",
+      "local_name": "Erra Nela / Chalka",
+      "description": "Red sandy loam soil formed from weathering of granite and gneiss rocks. Well-drained but low in nutrients. Common across Telangana plateau.",
+      "characteristics": {"ph_range": "6.0-7.5", "texture": "Sandy loam to loam", "drainage": "Good", "moisture_retention": "Low to medium", "organic_matter": "Low"},
+      "suitable_crops": ["Rice", "Maize", "Red Gram", "Groundnut", "Mango", "Citrus", "Vegetables"],
+      "regions": ["Warangal", "Khammam", "Nalgonda", "Suryapet", "Rangareddy", "Mahbubnagar"],
+      "nutrient_profile": {"nitrogen": "Low", "phosphorus": "Low", "potassium": "Medium", "calcium": "Low", "iron": "High"},
+      "management_tips": ["Apply FYM or compost generously", "Use balanced NPK fertilizers", "Mulching to conserve moisture", "Drip irrigation recommended", "Lime application if pH is too low"]
+    },
+    {
+      "id": "SD003",
+      "type": "Red Loamy Sand (Dubba)",
+      "local_name": "Dubba Nela",
+      "description": "Light red sandy soil with low clay content. Very well-drained but poor in nutrients and moisture retention. Needs frequent irrigation.",
+      "characteristics": {"ph_range": "5.5-7.0", "texture": "Loamy sand", "drainage": "Excessive", "moisture_retention": "Very low", "organic_matter": "Very low"},
+      "suitable_crops": ["Groundnut", "Millets (Jowar, Bajra)", "Castor", "Sesame", "Watermelon"],
+      "regions": ["Mahbubnagar", "Nagarkurnool", "Wanaparthy", "Jogulamba Gadwal"],
+      "nutrient_profile": {"nitrogen": "Very low", "phosphorus": "Low", "potassium": "Low", "calcium": "Low", "iron": "Medium"},
+      "management_tips": ["Heavy organic matter addition essential", "Frequent light irrigation", "Wind breaks to prevent erosion", "Green manuring before sowing", "Apply micronutrients especially zinc and boron"]
+    },
+    {
+      "id": "SD004",
+      "type": "Alluvial Soil",
+      "local_name": "Oodu Nela",
+      "description": "Fertile river-deposited soil found along the Godavari, Krishna and their tributaries. Rich in nutrients and well-suited for intensive farming.",
+      "characteristics": {"ph_range": "6.5-8.0", "texture": "Sandy loam to silty clay", "drainage": "Moderate", "moisture_retention": "High", "organic_matter": "High"},
+      "suitable_crops": ["Rice", "Sugarcane", "Banana", "Vegetables", "Turmeric", "Chilli", "Cotton"],
+      "regions": ["Along Godavari (Warangal, Khammam, Bhadradri Kothagudem)", "Along Krishna (Nalgonda, Suryapet)", "Along Manjira (Medak, Sangareddy)"],
+      "nutrient_profile": {"nitrogen": "Medium to high", "phosphorus": "Medium", "potassium": "High", "calcium": "Medium", "iron": "Medium"},
+      "management_tips": ["Ideal for multi-cropping", "Monitor salinity buildup in canal-irrigated areas", "Maintain organic matter with crop residues", "Suitable for zero tillage in rabi", "Well-suited for mechanized farming"]
+    },
+    {
+      "id": "SD005",
+      "type": "Laterite Soil",
+      "local_name": "Jeediga Nela",
+      "description": "Iron and aluminium rich soil formed by intense weathering in high rainfall areas. Acidic and low in nutrients but responds well to management.",
+      "characteristics": {"ph_range": "5.0-6.5", "texture": "Gravelly loam", "drainage": "Good to excessive", "moisture_retention": "Low", "organic_matter": "Low"},
+      "suitable_crops": ["Rice", "Tea", "Coffee", "Cashew", "Mango", "Tapioca"],
+      "regions": ["Bhadradri Kothagudem", "Khammam", "Parts of Adilabad (hilly areas)"],
+      "nutrient_profile": {"nitrogen": "Low", "phosphorus": "Very low (fixed by iron)", "potassium": "Low", "calcium": "Very low", "iron": "Very high"},
+      "management_tips": ["Lime application to correct acidity", "Heavy FYM application", "Rock phosphate instead of superphosphate", "Terracing on slopes to prevent erosion", "Grow acid-tolerant crops"]
+    },
+    {
+      "id": "SD006",
+      "type": "Shallow Black Soil",
+      "local_name": "Potta Nela",
+      "description": "Thin layer of black soil over weathered rock. Less fertile than deep black soil but still productive with proper management.",
+      "characteristics": {"ph_range": "7.0-8.0", "texture": "Clay loam", "drainage": "Moderate", "moisture_retention": "Medium", "organic_matter": "Low to medium"},
+      "suitable_crops": ["Jowar", "Bajra", "Castor", "Safflower", "Chickpea", "Groundnut"],
+      "regions": ["Medak", "Sangareddy", "Siddipet", "Parts of Karimnagar"],
+      "nutrient_profile": {"nitrogen": "Low", "phosphorus": "Medium", "potassium": "High", "calcium": "High", "iron": "Low"},
+      "management_tips": ["Contour bunding for moisture conservation", "In-situ moisture conservation", "Short-duration crop varieties preferred", "Intercropping with legumes", "Avoid deep tillage to prevent rock exposure"]
+    },
+    {
+      "id": "SD007",
+      "type": "Salt-Affected Soil (Saline/Alkaline)",
+      "local_name": "Uppu Nela / Chedu Nela",
+      "description": "Soil with excessive salt accumulation due to poor drainage or high water table. Found in low-lying areas with brackish groundwater.",
+      "characteristics": {"ph_range": "8.5-10.0", "texture": "Variable", "drainage": "Very poor", "moisture_retention": "Variable", "organic_matter": "Low"},
+      "suitable_crops": ["Salt-tolerant rice varieties", "Barley", "Berseem", "Cotton (tolerant)", "Date palm"],
+      "regions": ["Parts of Nalgonda", "Suryapet", "Low-lying areas near tanks in various districts"],
+      "nutrient_profile": {"nitrogen": "Low", "phosphorus": "Low (unavailable due to high pH)", "potassium": "Variable", "calcium": "Very high", "iron": "Very low"},
+      "management_tips": ["Apply gypsum at 2-5 tonnes/acre", "Ensure proper drainage", "Leach salts with good quality water", "Grow salt-tolerant varieties", "Add organic matter to improve soil structure"]
+    },
+    {
+      "id": "SD008",
+      "type": "Forest Soil",
+      "local_name": "Adavi Nela",
+      "description": "Rich, dark soil found in forested and hilly areas of Telangana. High in organic matter but limited agricultural use due to terrain.",
+      "characteristics": {"ph_range": "5.5-7.0", "texture": "Loam to clay loam", "drainage": "Good", "moisture_retention": "High", "organic_matter": "Very high"},
+      "suitable_crops": ["Turmeric", "Ginger", "Coffee", "Pepper", "Fruits (Mango, Banana)", "Tribal food crops"],
+      "regions": ["Adilabad (Kumuram Bheem)", "Mulugu", "Bhadradri Kothagudem", "Jayashankar Bhupalpally"],
+      "nutrient_profile": {"nitrogen": "High", "phosphorus": "Medium", "potassium": "Medium", "calcium": "Low to medium", "iron": "High"},
+      "management_tips": ["Minimal disturbance to soil structure", "Agroforestry practices recommended", "Terrace farming on slopes", "Avoid burning forest residue", "Organic farming ideal for this soil"]
+    },
+    {
+      "id": "SD009",
+      "type": "Mixed Red and Black Soil",
+      "local_name": "Erra-Nalla Nela",
+      "description": "Transitional soil with properties of both red and black soils. Common in areas between Deccan trap basalt and granite/gneiss formations.",
+      "characteristics": {"ph_range": "6.5-7.8", "texture": "Clay loam to sandy clay loam", "drainage": "Moderate", "moisture_retention": "Medium to high", "organic_matter": "Medium"},
+      "suitable_crops": ["Cotton", "Maize", "Red Gram", "Chilli", "Turmeric", "Vegetables"],
+      "regions": ["Karimnagar", "Jagtial", "Siddipet", "Jangaon", "Yadadri Bhuvanagiri"],
+      "nutrient_profile": {"nitrogen": "Low to medium", "phosphorus": "Medium", "potassium": "Medium to high", "calcium": "Medium", "iron": "Medium"},
+      "management_tips": ["Balanced fertilization based on soil test", "Good for intercropping systems", "Respond well to organic manures", "Drip irrigation for efficient water use", "Suitable for most Telangana crops"]
+    },
+    {
+      "id": "SD010",
+      "type": "Chalky/Calcareous Soil",
+      "local_name": "Sudda Nela",
+      "description": "Soil rich in calcium carbonate, found in pockets across Telangana. Alkaline in nature with lime nodules in the profile.",
+      "characteristics": {"ph_range": "7.5-8.5", "texture": "Loam to clay loam", "drainage": "Moderate", "moisture_retention": "Medium", "organic_matter": "Low"},
+      "suitable_crops": ["Cotton", "Sorghum", "Safflower", "Chickpea", "Wheat"],
+      "regions": ["Parts of Nalgonda", "Mahbubnagar", "Medak"],
+      "nutrient_profile": {"nitrogen": "Low", "phosphorus": "Low (fixed by calcium)", "potassium": "Medium", "calcium": "Very high", "iron": "Low (chlorosis risk)"},
+      "management_tips": ["Apply iron sulphate to correct chlorosis", "Use acidic fertilizers like ammonium sulphate", "FYM helps release fixed phosphorus", "Avoid excessive liming", "Monitor micronutrient deficiencies"]
     }
   ]
 }

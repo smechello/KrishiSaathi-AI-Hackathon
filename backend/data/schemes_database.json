@@ -1,10 +1,281 @@
 {
   "schemes": [
     {
-      "id": 1,
-      "name": "PM-KISAN",
-      "type": "Income Support",
-      "description": "Direct income support to farmers"
+      "id": "TS001",
+      "name": "Rythu Bandhu (Farmer Investment Support Scheme)",
+      "type": "state",
+      "ministry": "Department of Agriculture, Telangana",
+      "description": "Direct investment support for farmers to purchase inputs like seeds, fertilizers and pesticides for crop cultivation.",
+      "eligibility": {
+        "land_holding": "Any land-owning farmer",
+        "income_limit": "No income limit",
+        "category": "All categories",
+        "state": "Telangana only"
+      },
+      "benefits": {
+        "amount": "Rs 10,000 per acre per year",
+        "frequency": "Twice a year (Rs 5,000 per season)",
+        "mode": "Bearer cheque or direct bank transfer"
+      },
+      "documents_required": ["Aadhaar card", "Pattadar passbook", "Bank account details"],
+      "application_process": "Visit local Agriculture Extension Officer (AEO) with Pattadar passbook and Aadhaar card.",
+      "portal": "https://rythubandhu.telangana.gov.in",
+      "helpline": "1800-599-5568",
+      "active": true
+    },
+    {
+      "id": "TS002",
+      "name": "Rythu Bima (Farmer Life Insurance Scheme)",
+      "type": "state",
+      "ministry": "Department of Agriculture, Telangana",
+      "description": "Free life insurance coverage for farmers enrolled under Rythu Bandhu scheme. Premium is fully paid by the state government.",
+      "eligibility": {
+        "land_holding": "Rythu Bandhu beneficiary",
+        "income_limit": "No income limit",
+        "category": "All categories",
+        "age": "18-59 years",
+        "state": "Telangana only"
+      },
+      "benefits": {
+        "amount": "Rs 5,00,000 life insurance cover",
+        "frequency": "On death of insured farmer",
+        "mode": "Paid to nominee"
+      },
+      "documents_required": ["Aadhaar card", "Pattadar passbook", "Bank account", "Nominee Aadhaar card"],
+      "application_process": "Auto-enrollment for Rythu Bandhu beneficiaries. Verify nominee details at agriculture office.",
+      "portal": "https://rythubima.telangana.gov.in",
+      "helpline": "1800-599-5568",
+      "active": true
+    },
+    {
+      "id": "TS003",
+      "name": "Mission Kakatiya (Tank Restoration)",
+      "type": "state",
+      "ministry": "Irrigation and CAD Department, Telangana",
+      "description": "Large-scale restoration and desilting of minor irrigation tanks across Telangana to increase irrigation capacity and groundwater recharge.",
+      "eligibility": {
+        "land_holding": "Farmers near identified tanks",
+        "income_limit": "Not applicable",
+        "category": "All",
+        "state": "Telangana only"
+      },
+      "benefits": {
+        "amount": "Free tank restoration",
+        "frequency": "Phase-wise implementation",
+        "mode": "Community benefit - improved irrigation"
+      },
+      "documents_required": ["No individual application needed"],
+      "application_process": "Village-level implementation. Tanks identified by Irrigation Department.",
+      "portal": "https://missionkakatiya.cgg.gov.in",
+      "helpline": "040-2345-0745",
+      "active": true
+    },
+    {
+      "id": "TS004",
+      "name": "Telangana Micro Irrigation Project (TMIP)",
+      "type": "state",
+      "ministry": "Department of Horticulture, Telangana",
+      "description": "Subsidy for installation of drip and sprinkler irrigation systems to improve water use efficiency in agriculture.",
+      "eligibility": {
+        "land_holding": "Any farmer",
+        "income_limit": "No limit",
+        "category": "All (higher subsidy for SC/ST)",
+        "state": "Telangana only"
+      },
+      "benefits": {
+        "amount": "Up to 90% subsidy for SC/ST; 80% for others",
+        "frequency": "One-time installation subsidy",
+        "mode": "Direct subsidy to vendor"
+      },
+      "documents_required": ["Aadhaar card", "Land records", "Caste certificate", "Bank account"],
+      "application_process": "Apply at District Horticulture Office. Field inspection followed by system installation.",
+      "portal": "https://horticulture.tg.nic.in",
+      "helpline": "040-2323-1681",
+      "active": true
+    },
+    {
+      "id": "TS005",
+      "name": "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)",
+      "type": "central",
+      "ministry": "Ministry of Agriculture and Farmers Welfare",
+      "description": "Income support of Rs 6,000 per year for all land-holding farmer families across India.",
+      "eligibility": {
+        "land_holding": "All cultivable landholding farmers",
+        "income_limit": "No limit for small/marginal farmers",
+        "category": "All categories",
+        "state": "All India"
+      },
+      "benefits": {
+        "amount": "Rs 6,000 per year",
+        "frequency": "3 installments of Rs 2,000 each",
+        "mode": "Direct bank transfer"
+      },
+      "documents_required": ["Aadhaar card", "Bank account", "Land records"],
+      "application_process": "Register at pmkisan.gov.in or visit nearest Common Service Centre.",
+      "portal": "https://pmkisan.gov.in",
+      "helpline": "011-2338-1092",
+      "active": true
+    },
+    {
+      "id": "TS006",
+      "name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
+      "type": "central",
+      "ministry": "Ministry of Agriculture and Farmers Welfare",
+      "description": "Crop insurance scheme providing financial support to farmers in case of crop failure due to natural calamities, pests and diseases.",
+      "eligibility": {
+        "land_holding": "Loanee and non-loanee farmers",
+        "income_limit": "No limit",
+        "category": "All",
+        "state": "All India"
+      },
+      "benefits": {
+        "amount": "Full insured sum on crop loss",
+        "frequency": "Per season claim",
+        "mode": "Direct bank transfer"
+      },
+      "documents_required": ["Aadhaar card", "Bank account", "Land records", "Sowing certificate"],
+      "application_process": "Apply through bank or PMFBY portal. Report crop loss within 72 hours.",
+      "portal": "https://pmfby.gov.in",
+      "helpline": "1800-200-7710",
+      "active": true
+    },
+    {
+      "id": "TS007",
+      "name": "Kisan Credit Card (KCC)",
+      "type": "central",
+      "ministry": "Ministry of Finance / NABARD",
+      "description": "Provides affordable short-term credit to farmers for cultivation expenses, post-harvest needs and consumption requirements.",
+      "eligibility": {
+        "land_holding": "Owner cultivators and tenant farmers",
+        "income_limit": "No limit",
+        "category": "All",
+        "state": "All India"
+      },
+      "benefits": {
+        "amount": "Credit limit based on land holding",
+        "frequency": "Revolving credit",
+        "mode": "KCC card for ATM and POS"
+      },
+      "documents_required": ["Aadhaar card", "Land records", "Passport photo", "Bank KYC"],
+      "application_process": "Apply at nearest bank branch. Card issued within 14 working days.",
+      "portal": "https://pmkisan.gov.in/Documents/KCC.pdf",
+      "helpline": "1800-180-1551",
+      "active": true
+    },
+    {
+      "id": "TS008",
+      "name": "Telangana Sheep Distribution Scheme",
+      "type": "state",
+      "ministry": "Department of Animal Husbandry, Telangana",
+      "description": "Free distribution of sheep units to traditional shepherd communities for livelihood enhancement.",
+      "eligibility": {
+        "land_holding": "Not required",
+        "income_limit": "BPL priority",
+        "category": "Golla/Kuruma and other shepherd communities",
+        "state": "Telangana only"
+      },
+      "benefits": {
+        "amount": "20+1 sheep unit free",
+        "frequency": "One-time distribution",
+        "mode": "Direct distribution"
+      },
+      "documents_required": ["Aadhaar card", "Caste certificate", "Income certificate", "Bank account"],
+      "application_process": "Apply at District Animal Husbandry Office. Selection through lottery.",
+      "portal": "https://sheep.telangana.gov.in",
+      "helpline": "040-2323-2055",
+      "active": true
+    },
+    {
+      "id": "TS009",
+      "name": "PM-KUSUM (Solar Pump Scheme)",
+      "type": "central",
+      "ministry": "Ministry of New and Renewable Energy",
+      "description": "Solar energy solutions for farmers including standalone solar pumps and solarization of existing grid-connected pumps.",
+      "eligibility": {
+        "land_holding": "Any farmer with valid land",
+        "income_limit": "No limit",
+        "category": "All",
+        "state": "All India"
+      },
+      "benefits": {
+        "amount": "60% subsidy (30% central + 30% state)",
+        "frequency": "One-time subsidy",
+        "mode": "Subsidy on solar pump installation"
+      },
+      "documents_required": ["Aadhaar card", "Land records", "Bank account", "Electricity connection"],
+      "application_process": "Apply on state KUSUM portal. Technical feasibility check before installation.",
+      "portal": "https://pmkusum.mnre.gov.in",
+      "helpline": "1800-180-3333",
+      "active": true
+    },
+    {
+      "id": "TS010",
+      "name": "Dharani Portal (Land Records)",
+      "type": "state",
+      "ministry": "Revenue Department, Telangana",
+      "description": "Integrated land records management system enabling online property registration, mutation and access to land records.",
+      "eligibility": {
+        "land_holding": "All landowners",
+        "income_limit": "Not applicable",
+        "category": "All",
+        "state": "Telangana only"
+      },
+      "benefits": {
+        "amount": "Free online access to land records",
+        "frequency": "Anytime access",
+        "mode": "Online portal"
+      },
+      "documents_required": ["Aadhaar card", "Existing land documents", "Encumbrance certificate"],
+      "application_process": "Visit dharani.telangana.gov.in. Search by survey number or Aadhaar.",
+      "portal": "https://dharani.telangana.gov.in",
+      "helpline": "040-2345-0726",
+      "active": true
+    },
+    {
+      "id": "TS011",
+      "name": "E-NAM (National Agriculture Market)",
+      "type": "central",
+      "ministry": "Ministry of Agriculture and Farmers Welfare",
+      "description": "Online trading platform connecting agricultural mandis across India for transparent price discovery and competitive bidding.",
+      "eligibility": {
+        "land_holding": "Any farmer",
+        "income_limit": "No limit",
+        "category": "All",
+        "state": "All India"
+      },
+      "benefits": {
+        "amount": "Better prices through competitive bidding",
+        "frequency": "Per transaction",
+        "mode": "Online payment"
+      },
+      "documents_required": ["Aadhaar card", "Bank account", "Mandi registration"],
+      "application_process": "Register at nearest e-NAM enabled mandi. Bring produce for quality testing.",
+      "portal": "https://www.enam.gov.in",
+      "helpline": "1800-270-0224",
+      "active": true
+    },
+    {
+      "id": "TS012",
+      "name": "Soil Health Card Scheme",
+      "type": "central",
+      "ministry": "Ministry of Agriculture and Farmers Welfare",
+      "description": "Periodic soil testing and issuance of soil health cards with crop-wise fertilizer recommendations.",
+      "eligibility": {
+        "land_holding": "Any farmer",
+        "income_limit": "No limit",
+        "category": "All",
+        "state": "All India"
+      },
+      "benefits": {
+        "amount": "Free soil testing",
+        "frequency": "Every 2 years",
+        "mode": "Soil Health Card issued"
+      },
+      "documents_required": ["Aadhaar card"],
+      "application_process": "Contact nearest soil testing lab or mandal agriculture office.",
+      "portal": "https://soilhealth.dac.gov.in",
+      "helpline": "1800-180-1551",
+      "active": true
     }
   ]
 }

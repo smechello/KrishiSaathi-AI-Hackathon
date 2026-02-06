@@ -1,11 +1,32 @@
-{
-  "mandi_prices": [
-    {
-      "date": "2026-02-06",
-      "crop": "Wheat",
-      "market": "Delhi",
-      "price_min": 2100,
-      "price_max": 2300
-    }
-  ]
-}
+[
+  {"crop": "Rice", "market": "Warangal", "state": "Telangana", "price_per_quintal": 2200, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Rice", "market": "Nizamabad", "state": "Telangana", "price_per_quintal": 2180, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Rice", "market": "Karimnagar", "state": "Telangana", "price_per_quintal": 2150, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Cotton", "market": "Adilabad", "state": "Telangana", "price_per_quintal": 6800, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Cotton", "market": "Khammam", "state": "Telangana", "price_per_quintal": 6750, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Cotton", "market": "Nalgonda", "state": "Telangana", "price_per_quintal": 6700, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Maize", "market": "Nizamabad", "state": "Telangana", "price_per_quintal": 2100, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Maize", "market": "Karimnagar", "state": "Telangana", "price_per_quintal": 2050, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Chilli", "market": "Warangal", "state": "Telangana", "price_per_quintal": 14500, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Chilli", "market": "Khammam", "state": "Telangana", "price_per_quintal": 14200, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Turmeric", "market": "Nizamabad", "state": "Telangana", "price_per_quintal": 12500, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Turmeric", "market": "Warangal", "state": "Telangana", "price_per_quintal": 12300, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Soybean", "market": "Adilabad", "state": "Telangana", "price_per_quintal": 4600, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Soybean", "market": "Nirmal", "state": "Telangana", "price_per_quintal": 4550, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Red Gram (Tur)", "market": "Mahbubnagar", "state": "Telangana", "price_per_quintal": 7200, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Red Gram (Tur)", "market": "Nalgonda", "state": "Telangana", "price_per_quintal": 7150, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Bengal Gram (Chana)", "market": "Karimnagar", "state": "Telangana", "price_per_quintal": 5400, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Bengal Gram (Chana)", "market": "Medak", "state": "Telangana", "price_per_quintal": 5350, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Groundnut", "market": "Mahbubnagar", "state": "Telangana", "price_per_quintal": 5800, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Groundnut", "market": "Wanaparthy", "state": "Telangana", "price_per_quintal": 5750, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Sunflower", "market": "Medak", "state": "Telangana", "price_per_quintal": 6200, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Sugarcane", "market": "Nizamabad", "state": "Telangana", "price_per_quintal": 315, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Mango", "market": "Hyderabad (Gaddiannaram)", "state": "Telangana", "price_per_quintal": 4500, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Tomato", "market": "Hyderabad (Bowenpally)", "state": "Telangana", "price_per_quintal": 1800, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Tomato", "market": "Warangal", "state": "Telangana", "price_per_quintal": 1650, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Onion", "market": "Hyderabad (Bowenpally)", "state": "Telangana", "price_per_quintal": 2200, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Onion", "market": "Kamareddy", "state": "Telangana", "price_per_quintal": 2100, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Green Gram (Moong)", "market": "Karimnagar", "state": "Telangana", "price_per_quintal": 7800, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Jowar (Sorghum)", "market": "Mahbubnagar", "state": "Telangana", "price_per_quintal": 3200, "date": "2026-01-15", "unit": "INR/quintal"},
+  {"crop": "Bajra (Pearl Millet)", "market": "Adilabad", "state": "Telangana", "price_per_quintal": 2500, "date": "2026-01-15", "unit": "INR/quintal"}
+]

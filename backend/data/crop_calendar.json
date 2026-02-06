@@ -1,11 +1,178 @@
-{
-  "crop_calendar": [
-    {
-      "crop": "Wheat",
-      "season": "Rabi (Winter)",
-      "sowing_month": "October-November",
-      "harvest_month": "March-April",
-      "duration_days": 150
-    }
-  ]
-}
+[
+  {
+    "crop": "Rice (Paddy)",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "July",
+    "harvest_start": "November",
+    "harvest_end": "December",
+    "region": "Telangana",
+    "varieties": ["BPT-5204 (Samba Mahsuri)", "RNR-15048 (Telangana Sona)", "MTU-1010", "WGL-32100", "JGL-1798"],
+    "notes": "Main staple crop of Telangana. Irrigated and rainfed. Kharif is the primary season."
+  },
+  {
+    "crop": "Rice (Paddy) - Rabi",
+    "season": "Rabi",
+    "sowing_start": "December",
+    "sowing_end": "January",
+    "harvest_start": "April",
+    "harvest_end": "May",
+    "region": "Telangana",
+    "varieties": ["BPT-5204", "MTU-1010", "WGL-32100"],
+    "notes": "Second rice crop in irrigated areas, especially along Godavari and Krishna canal commands."
+  },
+  {
+    "crop": "Cotton",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "July",
+    "harvest_start": "November",
+    "harvest_end": "February",
+    "region": "Telangana",
+    "varieties": ["Bt Cotton hybrids", "Bunny", "Mallika", "Brahma", "Jadoo"],
+    "notes": "Major cash crop in Adilabad, Karimnagar, Warangal, Khammam and Nalgonda districts. Mostly Bt hybrids."
+  },
+  {
+    "crop": "Maize",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "July",
+    "harvest_start": "September",
+    "harvest_end": "October",
+    "region": "Telangana",
+    "varieties": ["DHM-117", "DHM-121", "NK-6240", "Pioneer 3396", "Kaveri 50"],
+    "notes": "Grown in Karimnagar, Nizamabad, Medak and Adilabad. Used for poultry feed and starch industry."
+  },
+  {
+    "crop": "Maize - Rabi",
+    "season": "Rabi",
+    "sowing_start": "October",
+    "sowing_end": "November",
+    "harvest_start": "February",
+    "harvest_end": "March",
+    "region": "Telangana",
+    "varieties": ["DHM-117", "NK-6240", "Kaveri 50"],
+    "notes": "Rabi maize gaining popularity in Nizamabad and Karimnagar under irrigation."
+  },
+  {
+    "crop": "Chilli (Mirchi)",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "August",
+    "harvest_start": "December",
+    "harvest_end": "March",
+    "region": "Telangana",
+    "varieties": ["Byadgi", "Teja", "Wonder Hot", "LCA-334", "US-341"],
+    "notes": "Telangana is a major chilli producer. Grown extensively in Warangal, Khammam and Nalgonda."
+  },
+  {
+    "crop": "Turmeric",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "July",
+    "harvest_start": "January",
+    "harvest_end": "March",
+    "region": "Telangana",
+    "varieties": ["Salem", "Rajapuri", "Duggirala", "Mydukur", "Nizamabad Bulb"],
+    "notes": "Nizamabad is the turmeric capital of Telangana. Also grown in Karimnagar and Jagtial."
+  },
+  {
+    "crop": "Red Gram (Tur/Pigeon Pea)",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "July",
+    "harvest_start": "December",
+    "harvest_end": "January",
+    "region": "Telangana",
+    "varieties": ["ICPL-87119 (Asha)", "PRG-176", "MRG-1004", "TS-3R"],
+    "notes": "Important pulse crop in Mahbubnagar, Nalgonda and Adilabad districts."
+  },
+  {
+    "crop": "Bengal Gram (Chana/Chickpea)",
+    "season": "Rabi",
+    "sowing_start": "October",
+    "sowing_end": "November",
+    "harvest_start": "February",
+    "harvest_end": "March",
+    "region": "Telangana",
+    "varieties": ["JG-11", "JAKI-9218", "Vihar", "NBeG-3"],
+    "notes": "Major rabi pulse crop in Karimnagar, Adilabad and Medak. Rain-fed and irrigated."
+  },
+  {
+    "crop": "Soybean",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "July",
+    "harvest_start": "October",
+    "harvest_end": "November",
+    "region": "Telangana",
+    "varieties": ["JS-335", "JS-9560", "MAUS-71"],
+    "notes": "Grown in Adilabad, Nirmal and Mancherial districts bordering Maharashtra."
+  },
+  {
+    "crop": "Groundnut",
+    "season": "Kharif",
+    "sowing_start": "June",
+    "sowing_end": "July",
+    "harvest_start": "October",
+    "harvest_end": "November",
+    "region": "Telangana",
+    "varieties": ["Narayani (K-6)", "TAG-24", "ICGV-91114", "Kadiri-9"],
+    "notes": "Grown in Mahbubnagar, Wanaparthy and Nagarkurnool districts. Important oilseed crop."
+  },
+  {
+    "crop": "Sunflower",
+    "season": "Rabi",
+    "sowing_start": "November",
+    "sowing_end": "December",
+    "harvest_start": "March",
+    "harvest_end": "April",
+    "region": "Telangana",
+    "varieties": ["KBSH-44", "DRSH-1", "LSFH-171", "Morden"],
+    "notes": "Grown as rabi oilseed in Medak, Sangareddy and Siddipet districts."
+  },
+  {
+    "crop": "Sugarcane",
+    "season": "Annual",
+    "sowing_start": "January",
+    "sowing_end": "March",
+    "harvest_start": "December",
+    "harvest_end": "March",
+    "region": "Telangana",
+    "varieties": ["Co-86032", "CoM-88121", "Co-62175", "CoTL-09-204"],
+    "notes": "Grown in Nizamabad, Medak and Kamareddy near sugar factories."
+  },
+  {
+    "crop": "Mango",
+    "season": "Perennial",
+    "sowing_start": "July",
+    "sowing_end": "September",
+    "harvest_start": "April",
+    "harvest_end": "June",
+    "region": "Telangana",
+    "varieties": ["Benishan (Banganapalli)", "Dasheri", "Alphonso", "Totapuri", "Himayat"],
+    "notes": "Major mango-growing districts: Rangareddy, Mahbubnagar, Medak. Benishan is dominant variety."
+  },
+  {
+    "crop": "Tomato",
+    "season": "Rabi/Kharif",
+    "sowing_start": "September",
+    "sowing_end": "November",
+    "harvest_start": "December",
+    "harvest_end": "March",
+    "region": "Telangana",
+    "varieties": ["Lakshmi", "Arka Rakshak", "US-618", "NS-538", "Abhilash"],
+    "notes": "Grown year-round in Mahbubnagar, Rangareddy, Nalgonda. Highly price-volatile crop."
+  },
+  {
+    "crop": "Onion",
+    "season": "Rabi",
+    "sowing_start": "October",
+    "sowing_end": "December",
+    "harvest_start": "February",
+    "harvest_end": "April",
+    "region": "Telangana",
+    "varieties": ["Arka Kalyan", "N-53", "Agrifound Light Red", "Pusa Red"],
+    "notes": "Growing area in Kamareddy, Nizamabad and Sangareddy. Requires good storage."
+  }
+]
