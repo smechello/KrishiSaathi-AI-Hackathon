@@ -458,14 +458,6 @@ KrishiSaathi directly contributes to:
 
 ---
 
-## 📞 Contact & Support
-
-- **Email**: [your-email@example.com]
-- **WhatsApp**: [Your WhatsApp Number]
-- **LinkedIn**: [Your LinkedIn Profile]
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
