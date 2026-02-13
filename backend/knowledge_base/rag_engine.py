@@ -270,20 +270,20 @@ class RAGEngine:
 
             # Add key filterable metadata depending on collection type
             if collection_name == "crop_diseases":
-                metadata["crop"] = rec.get("crop", "")
-                metadata["category"] = rec.get("category", "")
-                metadata["severity"] = rec.get("severity", "")
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["category"] = str(rec.get("category", ""))
+                metadata["severity"] = str(rec.get("severity", ""))
             elif collection_name == "farming_practices":
-                metadata["category"] = rec.get("category", "")
-                metadata["season"] = rec.get("season", "")
+                metadata["category"] = str(rec.get("category", ""))
+                metadata["season"] = str(rec.get("season", ""))
             elif collection_name == "government_schemes":
-                metadata["category"] = rec.get("category", "")
-                metadata["name"] = rec.get("name", "")
+                metadata["category"] = str(rec.get("category", ""))
+                metadata["name"] = str(rec.get("name", ""))
             elif collection_name == "market_data":
-                metadata["crop"] = rec.get("crop", "")
-                metadata["category"] = rec.get("category", "")
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["category"] = str(rec.get("category", ""))
             elif collection_name == "soil_data":
-                metadata["type"] = rec.get("type", "")
+                metadata["type"] = str(rec.get("type", ""))
 
             chunks.append({"id": rec_id or f"{collection_name}_{len(chunks)}", "text": text, "metadata": metadata})
 

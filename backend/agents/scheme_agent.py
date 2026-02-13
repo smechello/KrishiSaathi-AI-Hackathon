@@ -8,12 +8,13 @@ import os
 from typing import Any
 
 from backend.knowledge_base.rag_engine import RAGEngine
+from backend.services.llm_helper import llm
 
 logger = logging.getLogger(__name__)
 
 
 class SchemeAgent:
-	"""Checks eligibility and provides scheme details."""
+	"""Checks eligibility and provides scheme details with source citations."""
 
 	def __init__(self, rag_engine: RAGEngine | None = None) -> None:
 		self._schemes = self._load_schemes()
@@ -77,6 +78,62 @@ class SchemeAgent:
 		except Exception as exc:
 			logger.warning("RAG search failed: %s", exc)
 			return ""
+
+	def answer_scheme_query(self, query: str) -> dict[str, Any]:
+		"""Answer a scheme-related question using RAG + LLM with source citations.
+
+		This is the primary entry point called by the Supervisor.
+		Returns: {"answer": str, "sources": list[str]}
+		"""
+		rag_context = ""
+		sources: list[str] = []
+		if self._rag:
+			try:
+				hits = self._rag.query(query, collection_names=["government_schemes"], n_results=5)
+				for h in hits:
+					src = self._build_source_label(h)
+					if src not in sources:
+						sources.append(src)
+				rag_context = self._rag.get_relevant_context(
+					query, collection_names=["government_schemes"], n_results=5,
+				)
+			except Exception as exc:
+				logger.warning("RAG retrieval failed for scheme query: %s", exc)
+
+		context_block = ""
+		if rag_context:
+			context_block = (
+				"\n\nGovernment scheme information from knowledge base:\n"
+				f"{rag_context}\n\n"
+			)
+
+		prompt = (
+			"You are a Telangana Government Scheme Expert for KrishiSaathi.\n\n"
+			"Answer the farmer's question about government schemes clearly:\n"
+			"- Provide exact eligibility criteria\n"
+			"- List required documents\n"
+			"- Explain how to apply (online/offline)\n"
+			"- Mention benefit amounts and payment schedules\n"
+			"- Include relevant deadlines\n\n"
+			"Cite the source of each piece of information as [Source: scheme_name].\n"
+			f"{context_block}"
+			f"Farmer's question: {query}"
+		)
+		answer = llm.generate(prompt, role="agent")
+		return {
+			"answer": answer,
+			"sources": sources,
+		}
+
+	@staticmethod
+	def _build_source_label(hit: dict[str, Any]) -> str:
+		"""Build a human-readable source label from a RAG hit."""
+		meta = hit.get("metadata", {})
+		name = meta.get("name", meta.get("category", ""))
+		collection = hit.get("collection", meta.get("source", ""))
+		if name:
+			return f"{collection}: {name}"
+		return collection
 
 	def get_document_checklist(self, scheme_name: str) -> list[str]:
 		"""Return document checklist for a scheme."""

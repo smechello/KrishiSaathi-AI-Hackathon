@@ -103,8 +103,15 @@ def main() -> None:
     print()
 
     # ── Quick sanity query ─────────────────────────────────────────────
+    #  After --fresh, the in-process HNSW index can fail.  We reload
+    #  the engine from persisted data to work around this edge case.
     print("Running sanity check queries ...")
-    _sanity_check(engine)
+    try:
+        _sanity_check(engine)
+    except Exception:
+        print("  ⚠ Re-loading engine from disk for sanity check ...")
+        engine = RAGEngine()
+        _sanity_check(engine)
 
     print()
     print("✅ Ingestion complete!  ChromaDB persisted at:")

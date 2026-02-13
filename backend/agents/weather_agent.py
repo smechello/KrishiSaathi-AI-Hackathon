@@ -1,21 +1,27 @@
-"""Weather Agent - Provides weather forecasts and analysis."""
+"""Weather Agent - Provides weather forecasts and crop-specific advisories."""
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import requests
 
 from backend.config import Config
+from backend.knowledge_base.rag_engine import RAGEngine
+from backend.services.llm_helper import llm
+
+logger = logging.getLogger(__name__)
 
 
 class WeatherAgent:
-	"""Fetches weather data and provides crop-specific advice."""
+	"""Fetches weather data and provides RAG-enhanced crop-specific advice."""
 
-	def __init__(self) -> None:
+	def __init__(self, rag_engine: RAGEngine | None = None) -> None:
 		if not Config.OPENWEATHER_API_KEY:
 			raise ValueError("OPENWEATHER_API_KEY is missing in environment.")
 		self._api_key = Config.OPENWEATHER_API_KEY
+		self._rag = rag_engine
 
 	def get_current_weather(self, city: str) -> dict[str, Any]:
 		"""Return current weather for a city using OpenWeatherMap."""
@@ -97,3 +103,88 @@ class WeatherAgent:
 			return {"spray": False, "reason": "High humidity increases fungal risk."}
 
 		return {"spray": True, "reason": "Conditions are suitable for spraying."}
+
+	# ── RAG-powered weather advisory (called by Supervisor) ────────────
+
+	def get_weather_advisory(self, city: str, crop: str = "") -> dict[str, Any]:
+		"""Generate a full weather advisory using live data + RAG farming practices.
+
+		Returns: {"advisory": str, "weather": dict, "sources": list[str]}
+		"""
+		# Fetch live weather
+		weather: dict[str, Any] = {}
+		forecast_text = ""
+		try:
+			weather = self.get_current_weather(city)
+			forecast = self.get_forecast(city, days=3)
+			if forecast:
+				lines = []
+				for day in forecast:
+					lines.append(f"  {day['date']}: {day['temp_c']}°C, {day['description']}, humidity {day['humidity']}%")
+				forecast_text = "\n".join(lines)
+		except Exception as exc:
+			logger.warning("Weather API call failed for '%s': %s", city, exc)
+			weather = {"city": city, "temperature_c": "N/A", "humidity": "N/A", "description": "unavailable"}
+
+		# Gather RAG context for farming practices
+		rag_context = ""
+		sources: list[str] = []
+		if self._rag:
+			try:
+				search_q = f"weather advisory {crop} {city} season farming"
+				hits = self._rag.query(
+					search_q,
+					collection_names=["farming_practices", "crop_diseases"],
+					n_results=4,
+				)
+				for h in hits:
+					meta = h.get("metadata", {})
+					name = meta.get("name", meta.get("category", ""))
+					col = h.get("collection", "")
+					src = f"{col}: {name}" if name else col
+					if src not in sources:
+						sources.append(src)
+				rag_context = self._rag.get_relevant_context(
+					search_q,
+					collection_names=["farming_practices", "crop_diseases"],
+					n_results=4,
+				)
+			except Exception as exc:
+				logger.warning("RAG weather context failed: %s", exc)
+
+		# Build LLM prompt
+		weather_block = (
+			f"Live weather for {city}:\n"
+			f"  Temperature: {weather.get('temperature_c', 'N/A')}°C\n"
+			f"  Humidity: {weather.get('humidity', 'N/A')}%\n"
+			f"  Wind: {weather.get('wind_speed', 'N/A')} m/s\n"
+			f"  Conditions: {weather.get('description', 'N/A')}\n"
+		)
+		if forecast_text:
+			weather_block += f"\n3-day forecast:\n{forecast_text}\n"
+
+		context_parts = [weather_block]
+		if rag_context:
+			context_parts.append(f"Farming practice knowledge base:\n{rag_context}")
+
+		context_block = "\n\n".join(context_parts)
+
+		crop_note = f" for {crop} crop" if crop else ""
+		prompt = (
+			f"You are a Weather & Crop Advisory Expert for KrishiSaathi, serving Telangana farmers.\n\n"
+			f"Based on the weather data below, provide a practical advisory{crop_note}:\n"
+			"- Current conditions summary\n"
+			"- Spray/irrigation recommendation\n"
+			"- Disease risk warnings based on humidity/temperature\n"
+			"- Specific farming activities to do or avoid today\n"
+			"- 3-day outlook and preparations\n\n"
+			"Cite knowledge base sources where applicable.\n"
+			f"\n{context_block}\n\n"
+			f"Farmer's location: {city}"
+		)
+		advisory = llm.generate(prompt, role="agent")
+		return {
+			"advisory": advisory,
+			"weather": weather,
+			"sources": sources,
+		}
