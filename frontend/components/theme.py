@@ -197,56 +197,105 @@ def _build_css(p: dict[str, str], theme: str) -> str:
     --ks-radius-lg: 16px;
 }}
 
-/* ── Base ─────────────────────────────────────────────────────────── */
-html, body, [data-testid="stAppViewContainer"] {{
+/* ── Base — force backgrounds & text on ALL Streamlit containers ──── */
+html, body,
+.stApp,
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewBlockContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+[data-testid="stVerticalBlock"],
+[data-testid="stBottom"] {{
+    background-color: {p['bg']} !important;
+    color: {p['text']} !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
-    color: var(--ks-text);
+}}
+
+/* ── Header bar ───────────────────────────────────────────────────── */
+[data-testid="stHeader"],
+header[data-testid="stHeader"] {{
+    background-color: {p['bg']} !important;
+}}
+
+/* ── Force text color everywhere ──────────────────────────────────── */
+.stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+.stApp p, .stApp span, .stApp li, .stApp div, .stApp label,
+.stApp td, .stApp th,
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] span,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3,
+[data-testid="stMarkdownContainer"] h4,
+[data-testid="stMarkdownContainer"] strong,
+[data-testid="stMarkdownContainer"] em,
+[data-testid="stMarkdownContainer"] a {{
+    color: {p['text']} !important;
 }}
 
 /* ── Smooth transitions for theme changes ─────────────────────────── */
 * {{ transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; }}
 
 /* ── Sidebar ──────────────────────────────────────────────────────── */
-[data-testid="stSidebar"] {{
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div {{
     background: {p['bg_sidebar']} !important;
     border-right: 1px solid {p['divider']} !important;
 }}
-[data-testid="stSidebar"] * {{
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] div {{
     color: {p['text']} !important;
 }}
 [data-testid="stSidebar"] .stSelectbox label,
 [data-testid="stSidebar"] .stButton button {{
     color: {p['text']} !important;
 }}
+[data-testid="stSidebar"] hr {{
+    border-color: {p['divider']} !important;
+}}
 
 /* ── Cards ─────────────────────────────────────────────────────────── */
 .ks-card {{
-    background: {p['card']};
+    background: {p['card']} !important;
     border: 1px solid {p['card_border']};
     border-radius: var(--ks-radius);
     padding: 1.2rem;
     box-shadow: 0 2px 8px {p['shadow']};
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+    color: {p['text']} !important;
 }}
 .ks-card:hover {{
     transform: translateY(-2px);
     box-shadow: 0 4px 16px {p['shadow']};
 }}
+.ks-card * {{
+    color: inherit !important;
+}}
 
 /* ── KPI metrics ───────────────────────────────────────────────────── */
-[data-testid="stMetric"] {{
-    background: {p['card']};
+[data-testid="stMetric"],
+[data-testid="stMetric"] > div {{
+    background: {p['card']} !important;
     border: 1px solid {p['card_border']};
     border-radius: var(--ks-radius);
     padding: 1rem !important;
     box-shadow: 0 1px 4px {p['shadow']};
 }}
-[data-testid="stMetricLabel"] {{
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] p,
+[data-testid="stMetricLabel"] div {{
     color: {p['text_secondary']} !important;
     font-weight: 500 !important;
     font-size: 0.85rem !important;
 }}
-[data-testid="stMetricValue"] {{
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] div {{
     color: {p['primary']} !important;
     font-weight: 700 !important;
 }}
@@ -291,6 +340,16 @@ html, body, [data-testid="stAppViewContainer"] {{
     font-weight: 600 !important;
     color: {p['text']} !important;
 }}
+[data-testid="stExpander"] summary span,
+[data-testid="stExpander"] summary p {{
+    color: {p['text']} !important;
+}}
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] {{
+    background: {p['card']} !important;
+}}
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] * {{
+    color: {p['text']} !important;
+}}
 
 /* ── Tabs ──────────────────────────────────────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {{
@@ -313,6 +372,9 @@ html, body, [data-testid="stAppViewContainer"] {{
     font-weight: 600 !important;
     box-shadow: 0 1px 4px {p['shadow']};
 }}
+.stTabs [data-baseweb="tab-panel"] {{
+    background: transparent !important;
+}}
 
 /* ── Inputs ────────────────────────────────────────────────────────── */
 .stTextInput > div > div,
@@ -324,11 +386,48 @@ html, body, [data-testid="stAppViewContainer"] {{
     background: {p['surface']} !important;
     color: {p['text']} !important;
 }}
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea {{
+    color: {p['text']} !important;
+    background: {p['surface']} !important;
+    caret-color: {p['primary']} !important;
+}}
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {{
+    color: {p['text_muted']} !important;
+}}
 .stTextInput > div > div:focus-within,
 .stSelectbox > div > div:focus-within,
 .stTextArea > div > div:focus-within {{
     border-color: {p['primary']} !important;
     box-shadow: 0 0 0 2px {p['primary_bg']} !important;
+}}
+
+/* Selectbox dropdown menu */
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[data-baseweb="popover"] ul,
+[data-baseweb="menu"] ul {{
+    background: {p['card']} !important;
+    border: 1px solid {p['card_border']} !important;
+}}
+[data-baseweb="menu"] li,
+[data-baseweb="menu"] [role="option"] {{
+    color: {p['text']} !important;
+    background: {p['card']} !important;
+}}
+[data-baseweb="menu"] li:hover,
+[data-baseweb="menu"] [role="option"]:hover {{
+    background: {p['primary_bg']} !important;
+}}
+[data-baseweb="select"] > div {{
+    background: {p['surface']} !important;
+    color: {p['text']} !important;
+    border-color: {p['card_border']} !important;
+}}
+[data-baseweb="select"] span {{
+    color: {p['text']} !important;
 }}
 
 /* ── Chat messages ─────────────────────────────────────────────────── */
@@ -339,10 +438,50 @@ html, body, [data-testid="stAppViewContainer"] {{
     padding: 1rem !important;
     box-shadow: 0 1px 3px {p['shadow']};
 }}
+[data-testid="stChatMessage"] * {{
+    color: {p['text']} !important;
+}}
+[data-testid="stChatMessage"] code {{
+    background: {p['bg_secondary']} !important;
+    color: {p['primary']} !important;
+}}
 .stChatInput > div {{
     border-color: {p['primary']} !important;
     border-radius: var(--ks-radius) !important;
     background: {p['surface']} !important;
+}}
+.stChatInput textarea,
+.stChatInput input {{
+    color: {p['text']} !important;
+    background: {p['surface']} !important;
+}}
+.stChatInput textarea::placeholder {{
+    color: {p['text_muted']} !important;
+}}
+
+/* ── st.info / st.success / st.warning / st.error boxes ───────────── */
+[data-testid="stAlert"] {{
+    border-radius: var(--ks-radius-sm) !important;
+}}
+div[data-testid="stAlert"] > div {{
+    color: {p['text']} !important;
+}}
+/* info */
+.stAlert [data-testid="stAlertContentInfo"],
+div[role="alert"]:has(.st-emotion-cache-info) {{
+    background: {p['info_bg']} !important;
+}}
+/* success */
+.stAlert [data-testid="stAlertContentSuccess"] {{
+    background: {p['success_bg']} !important;
+}}
+/* warning */
+.stAlert [data-testid="stAlertContentWarning"] {{
+    background: {p['warning_bg']} !important;
+}}
+/* error */
+.stAlert [data-testid="stAlertContentError"] {{
+    background: {p['error_bg']} !important;
 }}
 
 /* ── Dividers ──────────────────────────────────────────────────────── */
@@ -369,7 +508,7 @@ hr {{
 }}
 .ks-page-header h1 {{
     margin: 0;
-    color: {p['primary']};
+    color: {p['primary']} !important;
     font-family: 'Inter', sans-serif;
     font-weight: 700;
     font-size: 1.8rem;
@@ -379,7 +518,7 @@ hr {{
     gap: 0.5rem;
 }}
 .ks-page-header .ks-subtitle {{
-    color: {p['text_secondary']};
+    color: {p['text_secondary']} !important;
     margin: 0.2rem 0 0.8rem 0;
     font-size: 0.95rem;
     font-weight: 400;
@@ -397,19 +536,19 @@ hr {{
 }}
 .ks-badge-state {{
     background: {p['primary_bg']};
-    color: {p['primary']};
+    color: {p['primary']} !important;
 }}
 .ks-badge-central {{
     background: {p['info_bg']};
-    color: {p['info']};
+    color: {p['info']} !important;
 }}
 .ks-badge-active {{
     background: {p['success_bg']};
-    color: {p['success']};
+    color: {p['success']} !important;
 }}
 .ks-badge-inactive {{
     background: {p['error_bg']};
-    color: {p['error']};
+    color: {p['error']} !important;
 }}
 
 /* ── Hero card (used on weather, soil analyzer) ────────────────────── */
@@ -421,10 +560,13 @@ hr {{
     text-align: center;
     margin-bottom: 1rem;
 }}
-.ks-hero h2 {{
-    color: {p['primary']};
+.ks-hero h1, .ks-hero h2 {{
+    color: {p['primary']} !important;
     margin: 0 0 0.3rem 0;
     font-weight: 700;
+}}
+.ks-hero p, .ks-hero span {{
+    color: {p['text']} !important;
 }}
 
 /* ── Quick-action grid buttons ─────────────────────────────────────── */
@@ -461,7 +603,7 @@ hr {{
 }}
 .ks-sidebar-brand h2 {{
     margin: 0;
-    color: {p['primary']};
+    color: {p['primary']} !important;
     font-family: 'Inter', sans-serif;
     font-weight: 700;
     font-size: 1.5rem;
@@ -469,7 +611,7 @@ hr {{
 }}
 .ks-sidebar-brand p {{
     margin: 0;
-    color: {p['text_secondary']};
+    color: {p['text_secondary']} !important;
     font-size: 0.8rem;
 }}
 
@@ -488,7 +630,7 @@ hr {{
 .ks-footer {{
     text-align: center;
     font-size: 0.75rem;
-    color: {p['text_muted']};
+    color: {p['text_muted']} !important;
     padding: 0.5rem 0;
     line-height: 1.6;
 }}
@@ -508,17 +650,17 @@ hr {{
 }}
 .ks-alert-warning {{
     background: {p['warning_bg']};
-    color: {p['warning']};
+    color: {p['warning']} !important;
     border-left: 3px solid {p['warning']};
 }}
 .ks-alert-info {{
     background: {p['info_bg']};
-    color: {p['info']};
+    color: {p['info']} !important;
     border-left: 3px solid {p['info']};
 }}
 .ks-alert-success {{
     background: {p['success_bg']};
-    color: {p['success']};
+    color: {p['success']} !important;
     border-left: 3px solid {p['success']};
 }}
 
@@ -528,20 +670,89 @@ hr {{
     align-items: center;
     gap: 0.4rem;
     font-size: 0.78rem;
-    color: {p['text_muted']};
+    color: {p['text_muted']} !important;
     margin-top: 0.4rem;
 }}
 .ks-sources code {{
-    background: {p['bg_secondary']};
+    background: {p['bg_secondary']} !important;
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
     font-size: 0.75rem;
+    color: {p['text_muted']} !important;
 }}
 
 /* ── Data table overrides ──────────────────────────────────────────── */
 .stDataFrame {{
     border-radius: var(--ks-radius) !important;
     overflow: hidden;
+}}
+.stDataFrame [data-testid="stDataFrameResizable"] {{
+    background: {p['card']} !important;
+}}
+
+/* ── Column containers ─────────────────────────────────────────────── */
+[data-testid="stHorizontalBlock"],
+[data-testid="stColumn"] {{
+    background: transparent !important;
+}}
+
+/* ── Tooltips / popovers ───────────────────────────────────────────── */
+[data-baseweb="tooltip"] {{
+    background: {p['card']} !important;
+    color: {p['text']} !important;
+}}
+
+/* ── Plotly chart containers ───────────────────────────────────────── */
+.stPlotlyChart {{
+    background: transparent !important;
+}}
+
+/* ── Code blocks ───────────────────────────────────────────────────── */
+.stApp pre, .stApp code {{
+    background: {p['bg_secondary']} !important;
+    color: {p['text']} !important;
+}}
+
+/* ── Disabled buttons ──────────────────────────────────────────────── */
+.stButton > button:disabled {{
+    background: {p['bg_secondary']} !important;
+    color: {p['text_muted']} !important;
+    border-color: {p['card_border']} !important;
+    opacity: 0.7;
+}}
+
+/* ── Number input buttons ──────────────────────────────────────────── */
+.stNumberInput button {{
+    background: {p['surface']} !important;
+    color: {p['text']} !important;
+    border-color: {p['card_border']} !important;
+}}
+
+/* ── Multiselect / tags ────────────────────────────────────────────── */
+[data-baseweb="tag"] {{
+    background: {p['primary_bg']} !important;
+    color: {p['primary']} !important;
+}}
+
+/* ── File uploader ─────────────────────────────────────────────────── */
+[data-testid="stFileUploader"] {{
+    background: {p['surface']} !important;
+    border-color: {p['card_border']} !important;
+    border-radius: var(--ks-radius) !important;
+}}
+[data-testid="stFileUploader"] * {{
+    color: {p['text']} !important;
+}}
+
+/* ── Spinner ───────────────────────────────────────────────────────── */
+[data-testid="stSpinner"] {{
+    color: {p['primary']} !important;
+}}
+
+/* ── Caption ───────────────────────────────────────────────────────── */
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] * {{
+    color: {p['text_muted']} !important;
 }}
 """
 

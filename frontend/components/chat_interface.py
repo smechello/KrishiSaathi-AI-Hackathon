@@ -19,7 +19,21 @@ def inject_chat_css() -> None:
         border-radius: 16px !important;
         padding: 1rem 1.2rem !important;
         margin-bottom: 0.5rem !important;
+        background: {p['card']} !important;
+        border: 1px solid {p['card_border']} !important;
         box-shadow: 0 1px 3px {p['shadow']};
+    }}
+    [data-testid="stChatMessage"] p,
+    [data-testid="stChatMessage"] span,
+    [data-testid="stChatMessage"] li,
+    [data-testid="stChatMessage"] div,
+    [data-testid="stChatMessage"] strong,
+    [data-testid="stChatMessage"] em,
+    [data-testid="stChatMessage"] h1,
+    [data-testid="stChatMessage"] h2,
+    [data-testid="stChatMessage"] h3,
+    [data-testid="stChatMessage"] h4 {{
+        color: {p['text']} !important;
     }}
 
     /* --- Source citations ----------------------------------------------- */
@@ -28,14 +42,15 @@ def inject_chat_css() -> None:
         align-items: center;
         gap: 0.4rem;
         font-size: 0.78rem;
-        color: {p['text_muted']};
+        color: {p['text_muted']} !important;
         margin-top: 0.4rem;
     }}
     .ks-sources code {{
-        background: {p['bg_secondary']};
+        background: {p['bg_secondary']} !important;
         padding: 0.1rem 0.4rem;
         border-radius: 4px;
         font-size: 0.75rem;
+        color: {p['text_muted']} !important;
     }}
 
     /* --- Input area --------------------------------------------------- */
@@ -43,6 +58,14 @@ def inject_chat_css() -> None:
         border-color: {p['primary']} !important;
         border-radius: 12px !important;
         background: {p['surface']} !important;
+    }}
+    .stChatInput textarea,
+    .stChatInput input {{
+        color: {p['text']} !important;
+        background: {p['surface']} !important;
+    }}
+    .stChatInput textarea::placeholder {{
+        color: {p['text_muted']} !important;
     }}
     </style>
     """
