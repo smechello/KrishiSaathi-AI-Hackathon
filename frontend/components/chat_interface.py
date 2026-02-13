@@ -1,102 +1,56 @@
-"""Chat interface component — WhatsApp-style message bubbles."""
+"""Chat interface component — clean, modern message rendering."""
 
 from __future__ import annotations
 
 import streamlit as st
 
+from frontend.components.theme import icon, get_theme, get_palette
 
-# ── CSS for chat bubbles ───────────────────────────────────────────────
-CHAT_CSS = """
-<style>
-/* --- Chat container ------------------------------------------------ */
-.chat-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-    padding: 1rem 0;
-}
 
-/* --- Message bubbles ----------------------------------------------- */
-.msg-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
-.msg-row.user { flex-direction: row-reverse; }
-.msg-row.bot  { flex-direction: row; }
-
-.msg-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-.msg-avatar.user { background: #e8f5e9; }
-.msg-avatar.bot  { background: #fff3e0; }
-
-.msg-bubble {
-    max-width: 80%;
-    padding: 0.75rem 1rem;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    word-wrap: break-word;
-}
-.msg-bubble.user {
-    background: #dcf8c6;
-    border-top-right-radius: 4px;
-    color: #1b1b1b;
-}
-.msg-bubble.bot {
-    background: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-top-left-radius: 4px;
-    color: #1b1b1b;
-}
-
-/* --- Sources tag --------------------------------------------------- */
-.sources-tag {
-    font-size: 0.78rem;
-    color: #777;
-    margin-top: 0.4rem;
-    padding-left: 0.5rem;
-}
-
-/* --- Typing indicator --------------------------------------------- */
-@keyframes blink {
-    0%, 80%, 100% { opacity: 0; }
-    40% { opacity: 1; }
-}
-.typing-dot {
-    display: inline-block;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #888;
-    margin: 0 2px;
-    animation: blink 1.4s infinite both;
-}
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-/* ---- Input area --------------------------------------------------- */
-.stChatInput > div {
-    border-color: #2e7d32 !important;
-}
-</style>
-"""
-
+# ── CSS for chat bubbles (theme-aware) ─────────────────────────────────
 
 def inject_chat_css() -> None:
-    """Inject the chat CSS once per page load."""
-    st.markdown(CHAT_CSS, unsafe_allow_html=True)
+    """Inject chat-specific CSS. Called once per page load."""
+    p = get_palette(get_theme())
+    css = f"""
+    <style>
+    /* --- Chat message overrides ---------------------------------------- */
+    [data-testid="stChatMessage"] {{
+        border-radius: 16px !important;
+        padding: 1rem 1.2rem !important;
+        margin-bottom: 0.5rem !important;
+        box-shadow: 0 1px 3px {p['shadow']};
+    }}
+
+    /* --- Source citations ----------------------------------------------- */
+    .ks-sources {{
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        color: {p['text_muted']};
+        margin-top: 0.4rem;
+    }}
+    .ks-sources code {{
+        background: {p['bg_secondary']};
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }}
+
+    /* --- Input area --------------------------------------------------- */
+    .stChatInput > div {{
+        border-color: {p['primary']} !important;
+        border-radius: 12px !important;
+        background: {p['surface']} !important;
+    }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
 
 
 def render_message(role: str, content: str, sources: list[str] | None = None) -> None:
-    """Render a single chat message as a styled bubble.
+    """Render a single chat message.
 
     Parameters
     ----------
@@ -104,15 +58,22 @@ def render_message(role: str, content: str, sources: list[str] | None = None) ->
     content : The message text (supports Markdown).
     sources : Optional list of source labels (only for assistant messages).
     """
+    p = get_palette(get_theme())
+
     if role == "user":
         with st.chat_message("user", avatar="👨‍🌾"):
             st.markdown(content)
     else:
+        # Use the leaf icon as a small avatar indicator
         with st.chat_message("assistant", avatar="🌾"):
             st.markdown(content)
             if sources:
+                src_icon = icon("source", size=13, color=p["text_muted"])
                 src_str = " · ".join(f"`{s}`" for s in sources)
-                st.caption(f"📚 Sources: {src_str}")
+                st.markdown(
+                    f'<div class="ks-sources">{src_icon} {src_str}</div>',
+                    unsafe_allow_html=True,
+                )
 
 
 def render_chat_history(messages: list[dict]) -> None:

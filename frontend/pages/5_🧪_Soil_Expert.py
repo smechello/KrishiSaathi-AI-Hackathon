@@ -26,6 +26,7 @@ from backend.knowledge_base.rag_engine import RAGEngine  # noqa: E402
 from backend.agents.soil_agent import SoilAgent  # noqa: E402
 from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
+from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -186,14 +187,10 @@ def main() -> None:
     soils = _load_soil_database()
 
     # ── Header ─────────────────────────────────────────────────────────
-    st.markdown(
-        f"""
-        <div style="text-align:center; padding:0.5rem 0 0.2rem 0;">
-            <h1 style="margin:0; color:#2e7d32;">{_ui(lang, 'title')}</h1>
-            <p style="color:#666; margin:0 0 0.8rem 0;">{_ui(lang, 'subtitle')}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_page_header(
+        title=_ui(lang, 'title').replace('🧪 ', ''),
+        subtitle=_ui(lang, 'subtitle'),
+        icon_name='soil',
     )
 
     # ── Summary KPIs ───────────────────────────────────────────────────
@@ -272,14 +269,14 @@ def _render_analyzer(soils: list[dict], agent: SoilAgent, lang: str) -> None:
     tips = soil.get("management_tips", [])
 
     # ── Header card ────────────────────────────────────────────────────
+    soil_icon = icon("soil", size=24, color=get_palette(get_theme())["primary"])
     st.markdown(
         f"""
-        <div style="background:linear-gradient(135deg,#efebe9,#d7ccc8); padding:1rem;
-                    border-radius:12px; margin:1rem 0;">
-            <h2 style="margin:0; color:#4e342e;">🧪 {name}</h2>
-            <p style="color:#6d4c41; font-size:1.1rem; margin:0.3rem 0;">
+        <div class="ks-hero">
+            <h2>{soil_icon} {name}</h2>
+            <p style="font-size:1.1rem; margin:0.3rem 0;">
                 Telugu: <b>{local_name}</b></p>
-            <p style="color:#555;">{desc}</p>
+            <p>{desc}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -422,13 +419,13 @@ def _render_fertilizer(agent: SoilAgent, lang: str) -> None:
                         if isinstance(details, dict):
                             qty = details.get("quantity", details.get("qty", "--"))
                             cost = details.get("cost", "--")
+                            _pal = get_palette(get_theme())
                             st.markdown(
                                 f"""
-                                <div style="text-align:center; padding:0.8rem; background:#e8f5e9;
-                                            border-radius:10px; border:1px solid #a5d6a7; margin:0.3rem 0;">
+                                <div class="ks-card" style="text-align:center; padding:0.8rem; margin:0.3rem 0;">
                                     <b>{prod_name}</b><br>
-                                    <span style="font-size:1.3rem; color:#2e7d32;">{qty}</span><br>
-                                    <span style="color:#666;">₹{cost}</span>
+                                    <span style="font-size:1.3rem; color:{_pal['primary']};">{qty}</span><br>
+                                    <span style="color:{_pal['muted']};">₹{cost}</span>
                                 </div>
                                 """,
                                 unsafe_allow_html=True,

@@ -26,6 +26,7 @@ from backend.knowledge_base.rag_engine import RAGEngine  # noqa: E402
 from backend.agents.weather_agent import WeatherAgent  # noqa: E402
 from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
+from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -174,14 +175,10 @@ def main() -> None:
     agent = _get_weather_agent()
 
     # ── Header ─────────────────────────────────────────────────────────
-    st.markdown(
-        f"""
-        <div style="text-align:center; padding:0.5rem 0 0.2rem 0;">
-            <h1 style="margin:0; color:#2e7d32;">{_ui(lang, 'title')}</h1>
-            <p style="color:#666; margin:0 0 0.8rem 0;">{_ui(lang, 'subtitle')}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_page_header(
+        title=_ui(lang, 'title').replace('🌤️ ', ''),
+        subtitle=_ui(lang, 'subtitle'),
+        icon_name='weather',
     )
 
     # ── City selector at top ───────────────────────────────────────────
@@ -239,16 +236,15 @@ def _render_current(lang: str) -> None:
 
     city_name = st.session_state.get("weather_city_name", "")
     desc = current.get("description", "Clear")
-    icon = _icon(desc)
+    wicon = _icon(desc)
 
     # ── Big weather display ────────────────────────────────────────────
     st.markdown(
         f"""
-        <div style="text-align:center; padding:1rem; background:linear-gradient(135deg,#e8f5e9,#c8e6c9);
-                    border-radius:16px; margin-bottom:1rem;">
-            <h2 style="margin:0; color:#1b5e20;">{icon} {city_name}</h2>
-            <h1 style="margin:0; font-size:3.5rem; color:#2e7d32;">{current.get('temperature_c', '--')}°C</h1>
-            <p style="color:#555; font-size:1.2rem; margin:0;">{desc.title()}</p>
+        <div class="ks-hero">
+            <h2>{wicon} {city_name}</h2>
+            <h1 style="margin:0; font-size:3.5rem;">{current.get('temperature_c', '--')}°C</h1>
+            <p style="font-size:1.2rem; margin:0;">{desc.title()}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -322,23 +318,23 @@ def _render_forecast(lang: str) -> None:
 
     # ── Forecast cards ─────────────────────────────────────────────────
     cols = st.columns(min(len(forecast), 5))
+    pal = get_palette(get_theme())
     for i, (col, day) in enumerate(zip(cols, forecast[:5])):
         date_str = day.get("date", f"Day {i+1}")
         temp = day.get("temp_c", day.get("temperature_c", "--"))
         hum = day.get("humidity", "--")
         desc = day.get("description", "Clear")
-        icon = _icon(desc)
+        wicon = _icon(desc)
 
         with col:
             st.markdown(
                 f"""
-                <div style="text-align:center; padding:0.8rem; background:#f1f8e9;
-                            border-radius:12px; border:1px solid #c5e1a5;">
+                <div class="ks-card" style="text-align:center; padding:0.8rem;">
                     <b>{date_str}</b><br>
-                    <span style="font-size:2rem;">{icon}</span><br>
-                    <span style="font-size:1.5rem; color:#2e7d32;">{temp}°C</span><br>
-                    <span style="color:#666;">💧 {hum}%</span><br>
-                    <span style="color:#888; font-size:0.85rem;">{desc.title()}</span>
+                    <span style="font-size:2rem;">{wicon}</span><br>
+                    <span style="font-size:1.5rem; color:{pal['primary']};">{temp}°C</span><br>
+                    <span style="color:{pal['muted']};">💧 {hum}%</span><br>
+                    <span style="color:{pal['muted']}; font-size:0.85rem;">{desc.title()}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,

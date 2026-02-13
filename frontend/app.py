@@ -27,6 +27,7 @@ from frontend.components.chat_interface import (  # noqa: E402
     render_message,
     render_chat_history,
 )
+from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -138,14 +139,10 @@ def main() -> None:
     lang = render_sidebar()
 
     # ── Header ─────────────────────────────────────────────────────────
-    st.markdown(
-        f"""
-        <div style="text-align:center; padding:0.5rem 0 0.2rem 0;">
-            <h1 style="margin:0; color:#2e7d32;">{_ui(lang, 'title')}</h1>
-            <p style="color:#666; margin:0 0 0.5rem 0;">{_ui(lang, 'subtitle')}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_page_header(
+        title=_ui(lang, "title").replace("🌾 ", ""),
+        subtitle=_ui(lang, "subtitle"),
+        icon_name="leaf",
     )
 
     # ── Welcome message (only if chat is empty) ────────────────────────
@@ -211,8 +208,13 @@ def main() -> None:
         # Display the response
         st.markdown(response_text)
         if sources:
+            p = get_palette(get_theme())
+            src_icon = icon("source", size=13, color=p["text_muted"])
             src_str = " · ".join(f"`{s}`" for s in sources)
-            st.caption(f"📚 Sources: {src_str}")
+            st.markdown(
+                f'<div class="ks-sources">{src_icon} {src_str}</div>',
+                unsafe_allow_html=True,
+            )
 
     # ── Save assistant message ─────────────────────────────────────────
     st.session_state["messages"].append(

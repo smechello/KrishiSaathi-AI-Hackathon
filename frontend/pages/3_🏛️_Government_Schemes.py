@@ -25,6 +25,7 @@ from backend.knowledge_base.rag_engine import RAGEngine  # noqa: E402
 from backend.agents.scheme_agent import SchemeAgent  # noqa: E402
 from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
+from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -174,14 +175,10 @@ def main() -> None:
     schemes = _load_schemes_database()
 
     # ── Header ─────────────────────────────────────────────────────────
-    st.markdown(
-        f"""
-        <div style="text-align:center; padding:0.5rem 0 0.2rem 0;">
-            <h1 style="margin:0; color:#2e7d32;">{_ui(lang, 'title')}</h1>
-            <p style="color:#666; margin:0 0 0.8rem 0;">{_ui(lang, 'subtitle')}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_page_header(
+        title=_ui(lang, 'title').replace('🏛️ ', ''),
+        subtitle=_ui(lang, 'subtitle'),
+        icon_name='scheme',
     )
 
     # ── Summary KPIs ───────────────────────────────────────────────────
@@ -265,11 +262,14 @@ def _render_browse(schemes: list[dict], lang: str) -> None:
 
 def _render_scheme_card(scheme: dict, lang: str) -> None:
     """Render a single scheme as an expandable card."""
+    p = get_palette(get_theme())
     name = scheme.get("name", "Unknown Scheme")
     s_type = scheme.get("type", "")
-    badge = "🏛️ State" if s_type == "state" else "🇮🇳 Central"
     active = scheme.get("active", True)
-    status_badge = "🟢 Active" if active else "🔴 Inactive"
+
+    type_badge = f'<span class="ks-badge ks-badge-state">{icon("scheme", size=14, color=p["primary"])} State</span>' if s_type == "state" else f'<span class="ks-badge ks-badge-central">{icon("shield", size=14, color=p["info"])} Central</span>'
+    status_cls = "ks-badge-active" if active else "ks-badge-inactive"
+    status_text = "Active" if active else "Inactive"
 
     benefits = scheme.get("benefits", {})
     if isinstance(benefits, dict):
@@ -279,7 +279,8 @@ def _render_scheme_card(scheme: dict, lang: str) -> None:
         benefit_amount = str(benefits)
         benefit_freq = ""
 
-    with st.expander(f"{badge}  **{name}**  —  {benefit_amount}  {status_badge}", expanded=False):
+    with st.expander(f"**{name}**  —  {benefit_amount}", expanded=False):
+        st.markdown(f'{type_badge} <span class="ks-badge {status_cls}">{status_text}</span>', unsafe_allow_html=True)
         st.markdown(f"_{scheme.get('description', '')}_")
 
         col1, col2 = st.columns(2)

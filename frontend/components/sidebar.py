@@ -1,10 +1,22 @@
-"""Sidebar component — language selector, quick links, branding."""
+"""Sidebar component — branding, language, theme toggle & quick links."""
 
 from __future__ import annotations
+
+import base64
+import os
 
 import streamlit as st
 
 from backend.config import Config
+from frontend.components.theme import (
+    ICON,
+    icon,
+    get_theme,
+    set_theme,
+    get_palette,
+    inject_global_css,
+    _logo_b64,
+)
 
 # ── Language display names in their own script ─────────────────────────
 LANGUAGE_LABELS: dict[str, str] = {
@@ -39,42 +51,55 @@ GREETINGS: dict[str, str] = {
 }
 
 # ── Quick-action labels per language ───────────────────────────────────
-QUICK_ACTIONS: dict[str, list[tuple[str, str]]] = {
+QUICK_ACTIONS: dict[str, list[tuple[str, str, str]]] = {
     "en": [
-        ("🌱 Crop Disease", "My crop has a disease, help me diagnose it"),
-        ("💰 Market Prices", "What are today's mandi prices for rice?"),
-        ("🏛️ Govt Schemes", "What government schemes am I eligible for?"),
-        ("🌤️ Weather", "What is the weather forecast for my area?"),
-        ("🧪 Soil Health", "Recommend fertilizers for my red soil"),
+        ("crop", "Crop Disease", "My crop has a disease, help me diagnose it"),
+        ("rupee", "Market Prices", "What are today's mandi prices for rice?"),
+        ("scheme", "Govt Schemes", "What government schemes am I eligible for?"),
+        ("weather", "Weather", "What is the weather forecast for my area?"),
+        ("soil", "Soil Health", "Recommend fertilizers for my red soil"),
     ],
     "te": [
-        ("🌱 పంట వ్యాధి", "నా పంటకు వ్యాధి వచ్చింది, నిర్ధారణ చేయండి"),
-        ("💰 మార్కెట్ ధరలు", "ఈ రోజు వరి మండి ధర ఎంత?"),
-        ("🏛️ ప్రభుత్వ పథకాలు", "నాకు ఏ ప్రభుత్వ పథకాలు అర్హత ఉన్నాయి?"),
-        ("🌤️ వాతావరణం", "నా ప్రాంతంలో వాతావరణ సూచన ఏమిటి?"),
-        ("🧪 నేల ఆరోగ్యం", "ఎర్ర నేలకు ఎరువులు సిఫార్సు చేయండి"),
+        ("crop", "పంట వ్యాధి", "నా పంటకు వ్యాధి వచ్చింది, నిర్ధారణ చేయండి"),
+        ("rupee", "మార్కెట్ ధరలు", "ఈ రోజు వరి మండి ధర ఎంత?"),
+        ("scheme", "ప్రభుత్వ పథకాలు", "నాకు ఏ ప్రభుత్వ పథకాలు అర్హత ఉన్నాయి?"),
+        ("weather", "వాతావరణం", "నా ప్రాంతంలో వాతావరణ సూచన ఏమిటి?"),
+        ("soil", "నేల ఆరోగ్యం", "ఎర్ర నేలకు ఎరువులు సిఫార్సు చేయండి"),
     ],
     "hi": [
-        ("🌱 फसल रोग", "मेरी फसल में रोग लगा है, पहचान करो"),
-        ("💰 मंडी भाव", "आज चावल का मंडी भाव क्या है?"),
-        ("🏛️ सरकारी योजना", "मुझे कौन सी सरकारी योजनाएं मिल सकती हैं?"),
-        ("🌤️ मौसम", "मेरे क्षेत्र का मौसम कैसा रहेगा?"),
-        ("🧪 मिट्टी स्वास्थ्य", "लाल मिट्टी के लिए खाद सुझाव दें"),
+        ("crop", "फसल रोग", "मेरी फसल में रोग लगा है, पहचान करो"),
+        ("rupee", "मंडी भाव", "आज चावल का मंडी भाव क्या है?"),
+        ("scheme", "सरकारी योजना", "मुझे कौन सी सरकारी योजनाएं मिल सकती हैं?"),
+        ("weather", "मौसम", "मेरे क्षेत्र का मौसम कैसा रहेगा?"),
+        ("soil", "मिट्टी स्वास्थ्य", "लाल मिट्टी के लिए खाद सुझाव दें"),
     ],
 }
 
 
 def render_sidebar() -> str:
     """Render the sidebar and return the selected language code."""
+
+    # Ensure theme state exists
+    if "ks_theme" not in st.session_state:
+        st.session_state["ks_theme"] = "light"
+
     with st.sidebar:
-        # ── Branding ───────────────────────────────────────────────────
+        theme = get_theme()
+        p = get_palette(theme)
+
+        # ── Inject global CSS ──────────────────────────────────────────
+        inject_global_css(theme)
+
+        # ── Logo & Branding ────────────────────────────────────────────
+        logo_data = _logo_b64()
+        logo_html = f'<img src="data:image/svg+xml;base64,{logo_data}" alt="KrishiSaathi Logo">' if logo_data else ""
+
         st.markdown(
-            """
-            <div style="text-align:center; padding: 0.5rem 0 1rem 0;">
-                <span style="font-size:2.8rem;">🌾</span>
-                <h2 style="margin:0; color:#2e7d32;">KrishiSaathi</h2>
-                <p style="margin:0; font-size:0.85rem; color:#666;">
-                    AI Agricultural Advisory System</p>
+            f"""
+            <div class="ks-sidebar-brand">
+                {logo_html}
+                <h2>KrishiSaathi</h2>
+                <p>AI Agricultural Advisory System</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -82,14 +107,44 @@ def render_sidebar() -> str:
 
         st.divider()
 
-        # ── Language selector ──────────────────────────────────────────
-        st.subheader("🌐 Language / భాష")
+        # ── Theme Toggle ───────────────────────────────────────────────
+        theme_labels = {"light": "Light Mode", "dark": "Dark Mode"}
+        sun_icon = icon("sun", size=16, color=p["accent"])
+        moon_icon = icon("moon", size=16, color=p["info"])
 
-        # Build label → code mapping
+        tcol1, tcol2 = st.columns([1, 1])
+        with tcol1:
+            if st.button(
+                "☀️ Light" if theme == "dark" else "☀️ Light",
+                key="theme_light",
+                use_container_width=True,
+                disabled=(theme == "light"),
+            ):
+                set_theme("light")
+                st.rerun()
+        with tcol2:
+            if st.button(
+                "🌙 Dark" if theme == "light" else "🌙 Dark",
+                key="theme_dark",
+                use_container_width=True,
+                disabled=(theme == "dark"),
+            ):
+                set_theme("dark")
+                st.rerun()
+
+        st.divider()
+
+        # ── Language selector ──────────────────────────────────────────
+        lang_icon = icon("language", size=18, color=p["primary"])
+        st.markdown(
+            f'<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.3rem;">'
+            f'{lang_icon} <span style="font-weight:600; font-size:0.95rem;">Language / భాష</span></div>',
+            unsafe_allow_html=True,
+        )
+
         lang_codes = list(LANGUAGE_LABELS.keys())
         lang_labels = list(LANGUAGE_LABELS.values())
 
-        # Find the current index
         current_lang = st.session_state.get("language", Config.DEFAULT_LANGUAGE)
         try:
             current_idx = lang_codes.index(current_lang)
@@ -105,7 +160,6 @@ def render_sidebar() -> str:
         )
         selected_code = lang_codes[lang_labels.index(selected_label)]
 
-        # Detect language change
         if selected_code != st.session_state.get("language"):
             st.session_state["language"] = selected_code
             st.session_state["lang_changed"] = True
@@ -120,33 +174,46 @@ def render_sidebar() -> str:
         actions = QUICK_ACTIONS.get(lang, QUICK_ACTIONS["en"])
 
         qa_header = {
-            "en": "⚡ Quick Actions",
-            "te": "⚡ త్వరిత చర్యలు",
-            "hi": "⚡ त्वरित कार्य",
-        }.get(lang, "⚡ Quick Actions")
-        st.subheader(qa_header)
+            "en": "Quick Actions",
+            "te": "త్వరిత చర్యలు",
+            "hi": "त्वरित कार्य",
+        }.get(lang, "Quick Actions")
 
-        for label, query in actions:
-            if st.button(label, key=f"qa_{label}", use_container_width=True):
+        zap_icon = icon("zap", size=18, color=p["accent"])
+        st.markdown(
+            f'<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem;">'
+            f'{zap_icon} <span style="font-weight:600; font-size:0.95rem;">{qa_header}</span></div>',
+            unsafe_allow_html=True,
+        )
+
+        for icon_name, label, query in actions:
+            ic = icon(icon_name, size=16, color=p["primary"])
+            if st.button(f"{label}", key=f"qa_{label}", use_container_width=True):
                 st.session_state["pending_query"] = query
 
         st.divider()
 
         # ── Chat controls ──────────────────────────────────────────────
-        clear_label = {"en": "🗑️ Clear Chat", "te": "🗑️ చాట్ క్లియర్", "hi": "🗑️ चैट मिटाएं"}.get(lang, "🗑️ Clear Chat")
-        if st.button(clear_label, use_container_width=True):
+        clear_label = {
+            "en": "Clear Chat",
+            "te": "చాట్ క్లియర్",
+            "hi": "चैट मिटाएं",
+        }.get(lang, "Clear Chat")
+
+        if st.button(f"🗑️ {clear_label}", use_container_width=True, key="btn_clear"):
             st.session_state["messages"] = []
             st.session_state.pop("pending_query", None)
             st.rerun()
 
         # ── Footer ─────────────────────────────────────────────────────
         st.divider()
+        heart = icon("heart", size=12, color="#e53935")
         st.markdown(
-            """
-            <div style="text-align:center; font-size:0.75rem; color:#999;">
-                <p>Built with ❤️ for Indian Farmers</p>
-                <p>Powered by Groq + Gemini + ChromaDB</p>
-                <p style="margin-top:0.5rem;">© 2026 KrishiSaathi</p>
+            f"""
+            <div class="ks-footer">
+                <p>Built with {heart} for Indian Farmers</p>
+                <p>Powered by Groq · Gemini · ChromaDB</p>
+                <p style="margin-top:0.3rem;">© 2026 KrishiSaathi</p>
             </div>
             """,
             unsafe_allow_html=True,

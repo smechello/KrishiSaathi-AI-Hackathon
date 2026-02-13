@@ -24,6 +24,7 @@ from backend.knowledge_base.rag_engine import RAGEngine  # noqa: E402
 from backend.agents.market_agent import MarketAgent  # noqa: E402
 from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
+from frontend.components.theme import render_page_header  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -211,14 +212,10 @@ def main() -> None:
     intel_map = _intel_by_crop(market_intel)
 
     # ── Header ─────────────────────────────────────────────────────────
-    st.markdown(
-        f"""
-        <div style="text-align:center; padding:0.5rem 0 0.2rem 0;">
-            <h1 style="margin:0; color:#2e7d32;">{_ui(lang, 'title')}</h1>
-            <p style="color:#666; margin:0 0 0.8rem 0;">{_ui(lang, 'subtitle')}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_page_header(
+        title=_ui(lang, 'title').replace('💰 ', ''),
+        subtitle=_ui(lang, 'subtitle'),
+        icon_name='rupee',
     )
 
     # ── All mandi data ─────────────────────────────────────────────────
