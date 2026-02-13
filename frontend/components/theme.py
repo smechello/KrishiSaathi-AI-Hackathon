@@ -206,15 +206,28 @@ html, body,
 [data-testid="stMain"],
 [data-testid="stMainBlockContainer"],
 [data-testid="stVerticalBlock"],
-[data-testid="stBottom"] {{
+[data-testid="stBottom"],
+[data-testid="stBottomBlockContainer"] {{
+    background: {p['bg']} !important;
     background-color: {p['bg']} !important;
     color: {p['text']} !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+    color-scheme: {'dark' if theme == 'dark' else 'light'} !important;
+}}
+
+/* ── Bottom sticky bar (chat input container) ──────────────────────── */
+[data-testid="stBottom"],
+[data-testid="stBottom"] > div,
+[data-testid="stBottomBlockContainer"],
+[data-testid="stBottomBlockContainer"] > div {{
+    background: {p['bg']} !important;
+    background-color: {p['bg']} !important;
 }}
 
 /* ── Header bar ───────────────────────────────────────────────────── */
 [data-testid="stHeader"],
 header[data-testid="stHeader"] {{
+    background: {p['bg']} !important;
     background-color: {p['bg']} !important;
 }}
 
