@@ -18,9 +18,9 @@ class Config:
         GROQ_API_KEY: str | None = os.getenv("GROQ_API_KEY")
         OPENWEATHER_API_KEY: str | None = os.getenv("OPENWEATHER_API_KEY")
     else:
-        GEMINI_API_KEY: str | None = st.secrets["GEMINI_API_KEY"]
-        GROQ_API_KEY: str | None = st.secrets["GROQ_API_KEY"]
-        OPENWEATHER_API_KEY: str | None = st.secrets["OPENWEATHER_API_KEY"]
+        GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
+        GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
+        OPENWEATHER_API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
     
 
     # ── LLM Backend ────────────────────────────────────────────────────
