@@ -4,17 +4,24 @@ from __future__ import annotations
 
 import os
 from dotenv import load_dotenv
+import streamlit as st
 
-load_dotenv()
 
 
 class Config:
     """Application configuration loaded from environment variables."""
 
     # API Keys
-    GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
-    GROQ_API_KEY: str | None = os.getenv("GROQ_API_KEY")
-    OPENWEATHER_API_KEY: str | None = os.getenv("OPENWEATHER_API_KEY")
+    if os.path.exists(".env"):
+        load_dotenv()
+        GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
+        GROQ_API_KEY: str | None = os.getenv("GROQ_API_KEY")
+        OPENWEATHER_API_KEY: str | None = os.getenv("OPENWEATHER_API_KEY")
+    else:
+        GEMINI_API_KEY: str | None = st.secrets["GEMINI_API_KEY"]
+        GROQ_API_KEY: str | None = st.secrets["GROQ_API_KEY"]
+        OPENWEATHER_API_KEY: str | None = st.secrets["OPENWEATHER_API_KEY"]
+    
 
     # ── LLM Backend ────────────────────────────────────────────────────
     #  "groq"   → Groq Cloud  (primary, free 30 RPM / up to 14.4K RPD)
