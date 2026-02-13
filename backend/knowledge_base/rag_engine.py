@@ -25,21 +25,31 @@ from backend.config import Config
 logger = logging.getLogger(__name__)
 
 # ── Mapping of JSON files to ChromaDB collection names ───────────────
+# Searched in BOTH backend/knowledge_base/documents/ AND backend/data/
 COLLECTION_MAP: dict[str, str] = {
+    # Knowledge-base documents (backend/knowledge_base/documents/)
     "crop_diseases.json": "crop_diseases",
     "farming_practices.json": "farming_practices",
     "government_schemes.json": "government_schemes",
     "market_data.json": "market_data",
     "soil_data.json": "soil_data",
+    # Data files (backend/data/)
+    "crop_calendar.json": "crop_calendar",
+    "mandi_prices.json": "mandi_prices",
+    "schemes_database.json": "schemes_database",
 }
 
-# Top-level JSON key inside each file that holds the list of records
-ROOT_KEY_MAP: dict[str, str] = {
+# Top-level JSON key inside each file that holds the list of records.
+# Use None for files that are a bare JSON array at the top level.
+ROOT_KEY_MAP: dict[str, str | None] = {
     "crop_diseases.json": "crop_diseases",
     "farming_practices.json": "farming_practices",
     "government_schemes.json": "schemes",
     "market_data.json": "market_data",
     "soil_data.json": "soils",
+    "crop_calendar.json": None,        # bare list
+    "mandi_prices.json": None,         # bare list
+    "schemes_database.json": "schemes",
 }
 
 
@@ -62,30 +72,56 @@ class RAGEngine:
         """Load every JSON knowledge-base file, chunk it, embed it, and upsert
         into the corresponding ChromaDB collection.
 
+        Searches both ``backend/knowledge_base/documents/`` and ``backend/data/``
+        unless *documents_dir* explicitly overrides.
+
         Returns a dict mapping collection name → number of documents ingested.
         """
-        docs_dir = documents_dir or self._default_documents_path()
+        search_dirs: list[str] = []
+        if documents_dir:
+            search_dirs.append(documents_dir)
+        else:
+            search_dirs.append(self._default_documents_path())
+            search_dirs.append(self._default_data_path())
+
         stats: dict[str, int] = {}
 
         for filename, collection_name in COLLECTION_MAP.items():
-            filepath = os.path.join(docs_dir, filename)
-            if not os.path.exists(filepath):
-                logger.warning("Skipping missing file: %s", filepath)
+            # Find the file in any of the search directories
+            filepath: str | None = None
+            for d in search_dirs:
+                candidate = os.path.join(d, filename)
+                if os.path.exists(candidate):
+                    filepath = candidate
+                    break
+
+            if filepath is None:
+                logger.debug("Skipping %s — not found in any search dir", filename)
                 continue
 
             with open(filepath, "r", encoding="utf-8") as fh:
                 raw = json.load(fh)
 
-            root_key = ROOT_KEY_MAP.get(filename, "data")
-            records: list[dict[str, Any]] = raw.get(root_key, [])
+            # Handle both bare-list and dict-wrapped JSON
+            root_key = ROOT_KEY_MAP.get(filename)
+            if root_key is None:
+                # File is a bare JSON array at the top level
+                if isinstance(raw, list):
+                    records: list[dict[str, Any]] = raw
+                else:
+                    logger.warning("Expected list in %s but got %s", filename, type(raw).__name__)
+                    continue
+            else:
+                records = raw.get(root_key, [])
+
             if not records:
-                logger.warning("No records under key '%s' in %s", root_key, filename)
+                logger.warning("No records in %s (key='%s')", filename, root_key)
                 continue
 
             chunks = self._records_to_chunks(records, collection_name)
             count = self._upsert_chunks(collection_name, chunks)
             stats[collection_name] = count
-            logger.info("  ✓ %s  →  %d chunks ingested", collection_name, count)
+            logger.info("  ✓ %s  →  %d chunks ingested (from %s)", collection_name, count, os.path.basename(filepath))
 
         return stats
 
@@ -285,7 +321,22 @@ class RAGEngine:
             elif collection_name == "soil_data":
                 metadata["type"] = str(rec.get("type", ""))
 
-            chunks.append({"id": rec_id or f"{collection_name}_{len(chunks)}", "text": text, "metadata": metadata})
+            elif collection_name == "crop_calendar":
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["season"] = str(rec.get("season", ""))
+                metadata["region"] = str(rec.get("region", ""))
+
+            elif collection_name == "mandi_prices":
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["market"] = str(rec.get("market", ""))
+
+            elif collection_name == "schemes_database":
+                metadata["name"] = str(rec.get("name", ""))
+                metadata["type"] = str(rec.get("type", ""))
+
+            # Generate deterministic ID
+            rec_id_str = rec_id or f"{collection_name}_{len(chunks)}"
+            chunks.append({"id": rec_id_str, "text": text, "metadata": metadata})
 
         return chunks
 
@@ -348,4 +399,12 @@ class RAGEngine:
             os.path.dirname(os.path.dirname(__file__)),
             "knowledge_base",
             "documents",
+        )
+
+    @staticmethod
+    def _default_data_path() -> str:
+        """Return the default backend/data/ directory."""
+        return os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "data",
         )

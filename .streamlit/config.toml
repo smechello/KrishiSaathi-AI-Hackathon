@@ -1,16 +1,17 @@
 [theme]
-primaryColor = "#2ecc71"
+primaryColor = "#2e7d32"
 backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
-textColor = "#262730"
+secondaryBackgroundColor = "#f1f8e9"
+textColor = "#1b1b1b"
 font = "sans serif"
 
 [client]
-showErrorDetails = true
-toolbarMode = "developer"
+showErrorDetails = false
+toolbarMode = "minimal"
 
 [logger]
 level = "info"
 
 [server]
 maxUploadSize = 50
+headless = true

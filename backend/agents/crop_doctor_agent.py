@@ -80,13 +80,19 @@ class CropDoctorAgent:
 			"sources": sources,
 		}
 
-	def diagnose_from_image(self, image_path: str, context: str | None = None) -> dict[str, Any]:
-		"""Diagnose crop disease from an image path.
+	def diagnose_from_image(self, image_path: str | None = None, *, pil_image: Image.Image | None = None, context: str | None = None) -> dict[str, Any]:
+		"""Diagnose crop disease from an image.
 
-		Returns dict with keys: image_path, diagnosis, sources.
+		Accepts either *image_path* (file on disk) or *pil_image* (PIL object,
+		e.g. from Streamlit file_uploader).
+
+		Returns dict with keys: diagnosis, sources.
 		"""
-		if not os.path.exists(image_path):
-			raise FileNotFoundError(f"Image not found: {image_path}")
+		if pil_image is None:
+			if image_path and os.path.exists(image_path):
+				pil_image = Image.open(image_path)
+			else:
+				raise FileNotFoundError(f"Image not found: {image_path}")
 
 		# Retrieve RAG context if crop name provided in context
 		rag_context = ""
@@ -104,7 +110,7 @@ class CropDoctorAgent:
 			except Exception as exc:
 				logger.warning("RAG retrieval failed: %s", exc)
 
-		image = Image.open(image_path)
+		image = pil_image
 		prompt = (
 			"You are Dr. Krishi, an expert plant pathologist specialized in Telangana agriculture.\n\n"
 			"Analyze the crop image and provide:\n"
@@ -125,7 +131,6 @@ class CropDoctorAgent:
 
 		diagnosis = llm.generate([prompt, image], role="agent", use_cache=False)
 		return {
-			"image_path": image_path,
 			"diagnosis": diagnosis,
 			"sources": sources,
 		}
