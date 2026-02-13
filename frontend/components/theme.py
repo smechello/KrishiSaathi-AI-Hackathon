@@ -417,30 +417,71 @@ header[data-testid="stHeader"] {{
     box-shadow: 0 0 0 2px {p['primary_bg']} !important;
 }}
 
-/* Selectbox dropdown menu */
+/* Selectbox dropdown menu — aggressive overrides for all baseweb internals */
 [data-baseweb="popover"],
+[data-baseweb="popover"] > div,
 [data-baseweb="menu"],
 [data-baseweb="popover"] ul,
-[data-baseweb="menu"] ul {{
+[data-baseweb="menu"] ul,
+[data-baseweb="list"] {{
     background: {p['card']} !important;
+    background-color: {p['card']} !important;
     border: 1px solid {p['card_border']} !important;
+    color: {p['text']} !important;
 }}
 [data-baseweb="menu"] li,
-[data-baseweb="menu"] [role="option"] {{
+[data-baseweb="menu"] [role="option"],
+[data-baseweb="list"] li,
+[data-baseweb="list"] [role="option"],
+[data-baseweb="menu"] li *,
+[data-baseweb="menu"] [role="option"] *,
+[data-baseweb="list"] li *,
+[data-baseweb="list"] [role="option"] * {{
     color: {p['text']} !important;
     background: {p['card']} !important;
+    background-color: {p['card']} !important;
 }}
 [data-baseweb="menu"] li:hover,
-[data-baseweb="menu"] [role="option"]:hover {{
+[data-baseweb="menu"] [role="option"]:hover,
+[data-baseweb="list"] li:hover,
+[data-baseweb="list"] [role="option"]:hover,
+[data-baseweb="menu"] li[aria-selected="true"],
+[data-baseweb="menu"] [role="option"][aria-selected="true"],
+[data-baseweb="list"] li[aria-selected="true"],
+[data-baseweb="list"] [role="option"][aria-selected="true"] {{
     background: {p['primary_bg']} !important;
+    background-color: {p['primary_bg']} !important;
 }}
-[data-baseweb="select"] > div {{
+[data-baseweb="menu"] li:hover *,
+[data-baseweb="menu"] [role="option"]:hover *,
+[data-baseweb="list"] li:hover *,
+[data-baseweb="list"] [role="option"]:hover * {{
+    background: {p['primary_bg']} !important;
+    background-color: {p['primary_bg']} !important;
+    color: {p['text']} !important;
+}}
+/* Selectbox control itself */
+[data-baseweb="select"],
+[data-baseweb="select"] > div,
+[data-baseweb="select"] > div > div {{
     background: {p['surface']} !important;
+    background-color: {p['surface']} !important;
     color: {p['text']} !important;
     border-color: {p['card_border']} !important;
 }}
-[data-baseweb="select"] span {{
+[data-baseweb="select"] span,
+[data-baseweb="select"] div,
+[data-baseweb="select"] input {{
     color: {p['text']} !important;
+}}
+/* Selectbox clear & arrow icons */
+[data-baseweb="select"] svg {{
+    fill: {p['text_muted']} !important;
+}}
+/* Dropdown overlay / popover shadow in dark */
+[data-baseweb="popover"] > div > div {{
+    background: {p['card']} !important;
+    background-color: {p['card']} !important;
 }}
 
 /* ── Chat messages ─────────────────────────────────────────────────── */
