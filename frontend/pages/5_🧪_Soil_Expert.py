@@ -425,7 +425,7 @@ def _render_fertilizer(agent: SoilAgent, lang: str) -> None:
                                 <div class="ks-card" style="text-align:center; padding:0.8rem; margin:0.3rem 0;">
                                     <b>{prod_name}</b><br>
                                     <span style="font-size:1.3rem; color:{_pal['primary']};">{qty}</span><br>
-                                    <span style="color:{_pal['muted']};">₹{cost}</span>
+                                    <span style="color:{_pal['text_muted']};">₹{cost}</span>
                                 </div>
                                 """,
                                 unsafe_allow_html=True,
@@ -538,8 +538,12 @@ def _render_advisor(agent: SoilAgent, lang: str) -> None:
 
     st.markdown(f"#### {_ui(lang, 'tab_advisor')}")
 
+    # Pick up deferred quick-question if any
+    _default_q = st.session_state.pop("_soil_quick_q", "")
+
     query = st.text_area(
         _ui(lang, "advisor_label"),
+        value=_default_q,
         placeholder=_ui(lang, "advisor_placeholder"),
         height=100,
         key="soil_advisor_query",
@@ -614,7 +618,7 @@ def _render_advisor(agent: SoilAgent, lang: str) -> None:
     for i, (col, q) in enumerate(zip(cols, qs)):
         with col:
             if st.button(q[:28] + "…" if len(q) > 28 else q, key=f"soilq_{i}", use_container_width=True):
-                st.session_state["soil_advisor_query"] = q
+                st.session_state["_soil_quick_q"] = q
                 st.rerun()
 
 

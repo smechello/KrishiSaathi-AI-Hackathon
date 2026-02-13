@@ -333,8 +333,8 @@ def _render_forecast(lang: str) -> None:
                     <b>{date_str}</b><br>
                     <span style="font-size:2rem;">{wicon}</span><br>
                     <span style="font-size:1.5rem; color:{pal['primary']};">{temp}°C</span><br>
-                    <span style="color:{pal['muted']};">💧 {hum}%</span><br>
-                    <span style="color:{pal['muted']}; font-size:0.85rem;">{desc.title()}</span>
+                    <span style="color:{pal['text_muted']};">💧 {hum}%</span><br>
+                    <span style="color:{pal['text_muted']}; font-size:0.85rem;">{desc.title()}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
