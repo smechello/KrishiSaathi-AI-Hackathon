@@ -26,7 +26,7 @@ We are a team of 4 passionate developers from India, building KrishiSaathi for t
       <strong>Vishnu Preshitha M</strong><br/>
       <em>AI/ML Engineer</em><br/>
       Agent design, LLM prompt engineering, knowledge base curation<br/><br/>
-      <a href="https://linkedin.com/in/vishnupreshitham">
+      <a href="https://linkedin.com/in/vishnupreshitha2222/">
         <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
       </a>
     </td>
@@ -34,9 +34,9 @@ We are a team of 4 passionate developers from India, building KrishiSaathi for t
   <tr>
     <td align="center">
       <strong>Pranavi P</strong><br/>
-      <em>Frontend & UX Developer</em><br/>
-      Streamlit UI, theme system, user experience, accessibility<br/><br/>
-      <a href="https://linkedin.com/in/pranavip">
+      <em>Data & Integration Engineer</em><br/>
+      Supabase setup, API integrations, testing, documentation<br/><br/>
+      <a href="https://www.linkedin.com/in/pranavi-p-690887284/">
         <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
       </a>
     </td>
@@ -44,9 +44,9 @@ We are a team of 4 passionate developers from India, building KrishiSaathi for t
   <tr>
     <td align="center">
       <strong>Sai Shiva P</strong><br/>
-      <em>Data & Integration Engineer</em><br/>
-      Supabase setup, API integrations, testing, documentation<br/><br/>
-      <a href="https://linkedin.com/in/saishivap">
+      <em>Frontend & UX Developer</em><br/>
+      Streamlit UI, theme system, user experience, accessibility<br/><br/>
+      <a href="https://www.linkedin.com/in/p-sai-shiva-93933b28b/">
         <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
       </a>
     </td>
