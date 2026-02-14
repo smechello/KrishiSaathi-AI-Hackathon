@@ -87,16 +87,22 @@ class Config:
     }
 
     # ── Admin ─────────────────────────────────────────────────────────
-    _admin_raw: str = (
+    _admin_raw = (
         os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_MAILS", ""))
         if os.path.exists(".env")
         else st.secrets.get("ADMIN_EMAILS", st.secrets.get("ADMIN_MAILS", ""))
     )
-    ADMIN_EMAILS: list[str] = [
-        e.strip().lower()
-        for e in (json.loads(_admin_raw) if _admin_raw.startswith("[") else _admin_raw.split(","))
-        if e.strip()
-    ]
+    # st.secrets may return a list directly; os.getenv always returns str
+    if isinstance(_admin_raw, list):
+        ADMIN_EMAILS: list[str] = [e.strip().lower() for e in _admin_raw if isinstance(e, str) and e.strip()]
+    elif isinstance(_admin_raw, str) and _admin_raw.strip():
+        ADMIN_EMAILS = [
+            e.strip().lower()
+            for e in (json.loads(_admin_raw) if _admin_raw.startswith("[") else _admin_raw.split(","))
+            if e.strip()
+        ]
+    else:
+        ADMIN_EMAILS = []
 
     # Database
     DB_PATH: str = "data/krishisaathi.db"
