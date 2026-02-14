@@ -17,10 +17,14 @@ class Config:
         GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
         GROQ_API_KEY: str | None = os.getenv("GROQ_API_KEY")
         OPENWEATHER_API_KEY: str | None = os.getenv("OPENWEATHER_API_KEY")
+        SUPABASE_URL: str | None = os.getenv("SUPABASE_URL")
+        SUPABASE_KEY: str | None = os.getenv("SUPABASE_KEY")
     else:
         GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
         GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
         OPENWEATHER_API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
+        SUPABASE_URL = st.secrets.get("SUPABASE_URL")
+        SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")
     
 
     # ── LLM Backend ────────────────────────────────────────────────────

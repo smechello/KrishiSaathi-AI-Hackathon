@@ -8,6 +8,7 @@ import os
 import streamlit as st
 
 from backend.config import Config
+from backend.services.supabase_service import SupabaseManager
 from frontend.components.theme import (
     ICON,
     icon,
@@ -134,6 +135,39 @@ def render_sidebar() -> str:
 
         st.divider()
 
+        # ── User Profile (only when authenticated) ─────────────────────
+        _is_authed = st.session_state.get("authenticated", False)
+        _user = st.session_state.get("auth_user")
+
+        if SupabaseManager.is_configured() and _is_authed and _user:
+            user_icon = icon("user", size=18, color=p["primary"]) if "user" in ICON else "👤"
+            display_name = _user.get("full_name") or _user.get("email", "User")
+            st.markdown(
+                f'<div style="display:flex; align-items:center; gap:0.5rem; '
+                f'padding:0.6rem 0.75rem; background:{p["surface"]}; '
+                f'border-radius:10px; margin-bottom:0.5rem;">'
+                f'  <div style="width:36px; height:36px; border-radius:50%; '
+                f'background:{p["primary"]}; display:flex; align-items:center; '
+                f'justify-content:center; color:#fff; font-weight:700; font-size:1rem;">'
+                f'{display_name[0].upper()}</div>'
+                f'  <div style="flex:1; min-width:0;">'
+                f'    <div style="font-weight:600; font-size:0.9rem; color:{p["text"]}; '
+                f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{display_name}</div>'
+                f'    <div style="font-size:0.75rem; color:{p["text_muted"]}; '
+                f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{_user.get("email","")}</div>'
+                f'  </div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+            if st.button("🚪 Sign Out", use_container_width=True, key="btn_logout"):
+                SupabaseManager.sign_out()
+                st.session_state["messages"] = []
+                st.session_state.pop("_chat_loaded", None)
+                st.rerun()
+
+            st.divider()
+
         # ── Language selector ──────────────────────────────────────────
         lang_icon = icon("language", size=18, color=p["primary"])
         st.markdown(
@@ -203,6 +237,10 @@ def render_sidebar() -> str:
         if st.button(f"🗑️ {clear_label}", use_container_width=True, key="btn_clear"):
             st.session_state["messages"] = []
             st.session_state.pop("pending_query", None)
+            st.session_state.pop("_chat_loaded", None)
+            # Also clear from Supabase if authenticated
+            if SupabaseManager.is_configured() and _is_authed and _user:
+                SupabaseManager.clear_messages(_user["id"])
             st.rerun()
 
         # ── Footer ─────────────────────────────────────────────────────

@@ -25,6 +25,7 @@ from backend.agents.market_agent import MarketAgent  # noqa: E402
 from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
 from frontend.components.theme import render_page_header  # noqa: E402
+from frontend.components.auth import require_auth  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -206,6 +207,7 @@ def main() -> None:
         st.session_state["language"] = Config.DEFAULT_LANGUAGE
 
     lang = render_sidebar()
+    _user = require_auth()
     agent = _get_market_agent()
     market_intel = _load_market_intelligence()
     msp_map = _msp_lookup(market_intel)

@@ -28,6 +28,8 @@ from frontend.components.chat_interface import (  # noqa: E402
     render_chat_history,
 )
 from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
+from frontend.components.auth import require_auth  # noqa: E402
+from backend.services.supabase_service import SupabaseManager  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -138,12 +140,23 @@ def main() -> None:
     # ── Sidebar (returns selected language code) ───────────────────────
     lang = render_sidebar()
 
+    # ── Auth gate (shows login form & stops if not authenticated) ──────
+    user = require_auth()
+
     # ── Header ─────────────────────────────────────────────────────────
     render_page_header(
         title=_ui(lang, "title").replace("🌾 ", ""),
         subtitle=_ui(lang, "subtitle"),
         icon_name="leaf",
     )
+
+    # ── Load persisted chat history for this user (first load) ─────────
+    if SupabaseManager.is_configured() and user.get("id") != "local":
+        if "_chat_loaded" not in st.session_state:
+            saved = SupabaseManager.load_messages(user["id"])
+            if saved:
+                st.session_state["messages"] = saved
+            st.session_state["_chat_loaded"] = True
 
     # ── Welcome message (only if chat is empty) ────────────────────────
     if not st.session_state["messages"]:
@@ -177,6 +190,10 @@ def main() -> None:
         {"role": "user", "content": query, "sources": None}
     )
     render_message("user", query)
+
+    # Persist user message to Supabase
+    if SupabaseManager.is_configured() and user.get("id") != "local":
+        SupabaseManager.save_message(user["id"], "user", query)
 
     # ── Translate user query to English if needed ──────────────────────
     if lang != "en":
@@ -220,6 +237,10 @@ def main() -> None:
     st.session_state["messages"].append(
         {"role": "assistant", "content": response_text, "sources": sources}
     )
+
+    # Persist assistant message to Supabase
+    if SupabaseManager.is_configured() and user.get("id") != "local":
+        SupabaseManager.save_message(user["id"], "assistant", response_text, sources)
 
 
 if __name__ == "__main__":
