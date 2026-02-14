@@ -102,7 +102,9 @@ class Config:
     DB_PATH: str = "data/krishisaathi.db"
     CHROMA_DB_PATH: str = "data/chroma_db"
 
-    # ── Admin-editable settings (persisted in JSON) ───────────────────
+    # ── Admin-editable settings ────────────────────────────────────────
+    #  Primary store  : Supabase ``admin_settings`` table (cloud-safe)
+    #  Fallback/cache : local JSON file (dev convenience)
     ADMIN_SETTINGS_FILE: str = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "config", "admin_settings.json",
@@ -110,7 +112,20 @@ class Config:
 
     @classmethod
     def load_admin_settings(cls) -> dict:
-        """Load admin-editable settings from JSON file."""
+        """Load admin settings — Supabase first, then local JSON fallback."""
+        # 1. Try Supabase (works on Streamlit Cloud)
+        try:
+            from backend.services.supabase_service import SupabaseManager
+            if SupabaseManager.is_configured():
+                data = SupabaseManager.load_admin_settings()
+                if data:
+                    # Also write to local cache for offline use
+                    cls._write_local_cache(data)
+                    return data
+        except Exception:
+            pass
+
+        # 2. Fallback: local JSON (works in dev / offline)
         try:
             if os.path.exists(cls.ADMIN_SETTINGS_FILE):
                 with open(cls.ADMIN_SETTINGS_FILE, "r", encoding="utf-8") as f:
@@ -121,11 +136,31 @@ class Config:
 
     @classmethod
     def save_admin_settings(cls, settings: dict) -> None:
-        """Persist admin settings to JSON and apply to runtime."""
-        os.makedirs(os.path.dirname(cls.ADMIN_SETTINGS_FILE), exist_ok=True)
-        with open(cls.ADMIN_SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=2, ensure_ascii=False)
+        """Persist admin settings to Supabase + local cache, then apply."""
+        # 1. Supabase (primary)
+        saved_to_cloud = False
+        try:
+            from backend.services.supabase_service import SupabaseManager
+            if SupabaseManager.is_configured():
+                saved_to_cloud = SupabaseManager.save_admin_settings(settings)
+        except Exception:
+            pass
+
+        # 2. Local JSON (always write as fallback/cache)
+        cls._write_local_cache(settings)
+
+        # 3. Apply to runtime
         cls.apply_admin_overrides(settings)
+
+    @classmethod
+    def _write_local_cache(cls, settings: dict) -> None:
+        """Write settings to local JSON file (best-effort)."""
+        try:
+            os.makedirs(os.path.dirname(cls.ADMIN_SETTINGS_FILE), exist_ok=True)
+            with open(cls.ADMIN_SETTINGS_FILE, "w", encoding="utf-8") as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass  # read-only filesystem — that's OK
 
     @classmethod
     def apply_admin_overrides(cls, settings: dict | None = None) -> None:

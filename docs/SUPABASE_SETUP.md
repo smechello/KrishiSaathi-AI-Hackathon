@@ -182,7 +182,46 @@ CREATE POLICY "Admins can delete any memories"
 
 ---
 
-## 3. Memories Table (AI Memory System)
+## 3. Admin Settings Table (Cloud-persistent config)
+
+This table stores admin dashboard settings (LLM config, API sources, etc.)
+so they survive Streamlit Cloud redeploys.
+
+```sql
+-- ═══════════════════════════════════════════════════════════════════
+--  Admin Settings — key-value config store
+-- ═══════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.admin_settings (
+    id          TEXT PRIMARY KEY DEFAULT 'global',
+    settings    JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+COMMENT ON TABLE public.admin_settings IS 'Admin dashboard config — single row, key=global.';
+
+-- RLS: only admins can read/write
+ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can read admin_settings"
+    ON public.admin_settings FOR SELECT
+    USING (public.is_admin());
+
+CREATE POLICY "Admins can insert admin_settings"
+    ON public.admin_settings FOR INSERT
+    WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins can update admin_settings"
+    ON public.admin_settings FOR UPDATE
+    USING (public.is_admin());
+```
+
+> **Note:** This table requires the `is_admin()` function from section 2b.
+> Run section 2b first, then this section.
+
+---
+
+## 4. Memories Table (AI Memory System)
 
 Run this SQL to enable the mem0-inspired memory system:
 
@@ -240,7 +279,7 @@ CREATE POLICY "Users can delete own memories"
 
 ---
 
-## 4. Supabase Auth Settings (Optional but Recommended)
+## 5. Supabase Auth Settings (Optional but Recommended)
 
 In the Supabase Dashboard → **Authentication → Providers → Email**:
 
@@ -254,11 +293,11 @@ In the Supabase Dashboard → **Authentication → Providers → Email**:
 
 ---
 
-## 5. Verify Setup
+## 6. Verify Setup
 
 After running the SQL, check:
 
-1. **Tables** → `profiles`, `chat_history`, and `memories` appear under *Table Editor*
+1. **Tables** → `profiles`, `chat_history`, `memories`, and `admin_settings` appear under *Table Editor*
 2. **Policies** → Each table shows its RLS policies under *Authentication → Policies*
 3. **Trigger** → `on_auth_user_created` appears under *Database → Triggers*
 

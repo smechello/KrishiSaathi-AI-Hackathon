@@ -405,6 +405,58 @@ class SupabaseManager:
             pass
         return counts
 
+    # ═══════════════════════════════════════════════════════════════════
+    #  Admin settings persistence (Supabase → survives deploys)
+    # ═══════════════════════════════════════════════════════════════════
+
+    @classmethod
+    def load_admin_settings(cls) -> dict | None:
+        """Load admin settings from the ``admin_settings`` table.
+
+        Returns the parsed settings dict, or ``None`` if the table
+        does not exist or has no rows.
+        """
+        if not cls.is_configured():
+            return None
+        try:
+            client = cls._authed_client()
+            res = (
+                client.table("admin_settings")
+                .select("settings")
+                .eq("id", "global")
+                .maybe_single()
+                .execute()
+            )
+            if res.data:
+                raw = res.data.get("settings")
+                if isinstance(raw, str):
+                    return json.loads(raw)
+                if isinstance(raw, dict):
+                    return raw
+        except Exception as exc:
+            # Table may not exist yet — that's fine
+            logger.debug("load_admin_settings: %s", exc)
+        return None
+
+    @classmethod
+    def save_admin_settings(cls, settings: dict) -> bool:
+        """Upsert admin settings into the ``admin_settings`` table.
+
+        Returns ``True`` on success.
+        """
+        if not cls.is_configured():
+            return False
+        try:
+            client = cls._authed_client()
+            client.table("admin_settings").upsert(
+                {"id": "global", "settings": json.dumps(settings, ensure_ascii=False)},
+                on_conflict="id",
+            ).execute()
+            return True
+        except Exception as exc:
+            logger.warning("save_admin_settings failed: %s", exc)
+            return False
+
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Module-level helpers
