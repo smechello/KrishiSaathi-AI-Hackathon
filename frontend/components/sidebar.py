@@ -19,6 +19,7 @@ from frontend.components.theme import (
     inject_global_css,
     _logo_b64,
 )
+from frontend.components.auth import is_admin
 
 # ── Language display names in their own script ─────────────────────────
 LANGUAGE_LABELS: dict[str, str] = {
@@ -166,6 +167,17 @@ def render_sidebar() -> str:
                 st.session_state["messages"] = []
                 st.session_state.pop("_chat_loaded", None)
                 st.rerun()
+
+            # ── Admin badge ────────────────────────────────────────────
+            if is_admin():
+                st.markdown(
+                    f'<div style="display:flex; align-items:center; gap:0.4rem; '
+                    f'padding:0.4rem 0.7rem; background:{p["warning"]}22; '
+                    f'border:1px solid {p["warning"]}44; border-radius:8px; margin-top:0.4rem;">'
+                    f'🔒 <span style="font-weight:600; font-size:0.85rem; color:{p["warning"]};">Admin</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
             st.divider()
 

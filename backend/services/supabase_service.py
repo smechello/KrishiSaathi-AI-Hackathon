@@ -289,6 +289,119 @@ class SupabaseManager:
             logger.warning("clear_messages failed: %s", exc)
             return False
 
+    # ═══════════════════════════════════════════════════════════════════
+    #  Admin queries (uses authed client — admin must be signed in)
+    # ═══════════════════════════════════════════════════════════════════
+
+    @classmethod
+    def admin_list_users(cls) -> list[dict]:
+        """List all users via the profiles table.
+
+        Returns list of dicts with id, full_name, preferred_language,
+        location, created_at.  Requires an admin-level RLS policy or
+        service_role key.
+        """
+        try:
+            client = cls._authed_client()
+            res = (
+                client.table("profiles")
+                .select("id, full_name, preferred_language, location, phone, created_at, updated_at")
+                .order("created_at", desc=True)
+                .execute()
+            )
+            return res.data or []
+        except Exception as exc:
+            logger.warning("admin_list_users failed: %s", exc)
+            return []
+
+    @classmethod
+    def admin_get_all_chat_history(cls, user_id: str | None = None, limit: int = 500) -> list[dict]:
+        """Fetch chat history for one user or all users.
+
+        Returns list of dicts with id, user_id, role, content, sources,
+        created_at.
+        """
+        try:
+            client = cls._authed_client()
+            q = (
+                client.table("chat_history")
+                .select("id, user_id, role, content, sources, created_at")
+            )
+            if user_id:
+                q = q.eq("user_id", user_id)
+            res = q.order("created_at", desc=True).limit(limit).execute()
+            rows = res.data or []
+            for row in rows:
+                src = row.get("sources")
+                if isinstance(src, str):
+                    try:
+                        row["sources"] = json.loads(src)
+                    except json.JSONDecodeError:
+                        row["sources"] = None
+            return rows
+        except Exception as exc:
+            logger.warning("admin_get_all_chat_history failed: %s", exc)
+            return []
+
+    @classmethod
+    def admin_get_all_memories(cls, user_id: str | None = None, limit: int = 500) -> list[dict]:
+        """Fetch memories for one user or all users."""
+        try:
+            client = cls._authed_client()
+            q = (
+                client.table("memories")
+                .select("id, user_id, content, category, importance, access_count, created_at, updated_at")
+            )
+            if user_id:
+                q = q.eq("user_id", user_id)
+            res = q.order("created_at", desc=True).limit(limit).execute()
+            return res.data or []
+        except Exception as exc:
+            logger.warning("admin_get_all_memories failed: %s", exc)
+            return []
+
+    @classmethod
+    def admin_delete_user_data(cls, user_id: str) -> dict:
+        """Delete all chat history + memories for a user (admin action)."""
+        results = {"chat_deleted": False, "memories_deleted": False}
+        try:
+            client = cls._authed_client()
+            client.table("chat_history").delete().eq("user_id", user_id).execute()
+            results["chat_deleted"] = True
+        except Exception as exc:
+            logger.warning("admin_delete_user_data: chat deletion failed: %s", exc)
+        try:
+            client = cls._authed_client()
+            client.table("memories").delete().eq("user_id", user_id).execute()
+            results["memories_deleted"] = True
+        except Exception as exc:
+            logger.warning("admin_delete_user_data: memories deletion failed: %s", exc)
+        return results
+
+    @classmethod
+    def admin_get_counts(cls) -> dict:
+        """Return aggregate counts for the admin dashboard."""
+        counts = {"users": 0, "messages": 0, "memories": 0}
+        try:
+            client = cls._authed_client()
+            r = client.table("profiles").select("id", count="exact").execute()
+            counts["users"] = r.count if r.count is not None else len(r.data or [])
+        except Exception:
+            pass
+        try:
+            client = cls._authed_client()
+            r = client.table("chat_history").select("id", count="exact").execute()
+            counts["messages"] = r.count if r.count is not None else len(r.data or [])
+        except Exception:
+            pass
+        try:
+            client = cls._authed_client()
+            r = client.table("memories").select("id", count="exact").execute()
+            counts["memories"] = r.count if r.count is not None else len(r.data or [])
+        except Exception:
+            pass
+        return counts
+
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Module-level helpers

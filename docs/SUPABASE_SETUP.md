@@ -125,6 +125,63 @@ CREATE TRIGGER on_auth_user_created
 
 ---
 
+## 2b. Admin RLS Policies
+
+Admin users need to read **all** profiles, chat_history, and memories.
+Create a helper function and add policies (replace the email list with your admin emails):
+
+```sql
+-- ═══════════════════════════════════════════════════════════════════
+--  Admin helper function + read-all policies
+-- ═══════════════════════════════════════════════════════════════════
+
+-- Helper: returns TRUE if current user is an admin
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM auth.users
+        WHERE id = auth.uid()
+        AND email = ANY(ARRAY[
+            'hiimamanenu@gmail.com'
+            -- Add more admin emails here, comma-separated
+        ])
+    );
+$$;
+
+-- Admins can read ALL profiles
+CREATE POLICY "Admins can read all profiles"
+    ON public.profiles FOR SELECT
+    USING (public.is_admin());
+
+-- Admins can read ALL chat history
+CREATE POLICY "Admins can read all chat"
+    ON public.chat_history FOR SELECT
+    USING (public.is_admin());
+
+-- Admins can delete any chat history
+CREATE POLICY "Admins can delete any chat"
+    ON public.chat_history FOR DELETE
+    USING (public.is_admin());
+
+-- Admins can read ALL memories
+CREATE POLICY "Admins can read all memories"
+    ON public.memories FOR SELECT
+    USING (public.is_admin());
+
+-- Admins can delete any memories
+CREATE POLICY "Admins can delete any memories"
+    ON public.memories FOR DELETE
+    USING (public.is_admin());
+```
+
+> **Important:** Update the email array in `is_admin()` whenever you add/remove admins.
+
+---
+
 ## 3. Memories Table (AI Memory System)
 
 Run this SQL to enable the mem0-inspired memory system:

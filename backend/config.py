@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dotenv import load_dotenv
 import streamlit as st
@@ -84,6 +85,18 @@ class Config:
         "ml": "Malayalam",
         "as": "Assamese",
     }
+
+    # ── Admin ─────────────────────────────────────────────────────────
+    _admin_raw: str = (
+        os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_MAILS", ""))
+        if os.path.exists(".env")
+        else st.secrets.get("ADMIN_EMAILS", st.secrets.get("ADMIN_MAILS", ""))
+    )
+    ADMIN_EMAILS: list[str] = [
+        e.strip().lower()
+        for e in (json.loads(_admin_raw) if _admin_raw.startswith("[") else _admin_raw.split(","))
+        if e.strip()
+    ]
 
     # Database
     DB_PATH: str = "data/krishisaathi.db"

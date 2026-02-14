@@ -13,6 +13,7 @@ from __future__ import annotations
 import streamlit as st
 
 from backend.services.supabase_service import SupabaseManager
+from backend.config import Config
 from frontend.components.theme import (
     get_theme,
     get_palette,
@@ -38,6 +39,15 @@ def get_current_user() -> dict | None:
     if not SupabaseManager.is_configured():
         return {"id": "local", "email": "", "full_name": "Farmer"}
     return st.session_state.get("auth_user")
+
+
+def is_admin() -> bool:
+    """``True`` when the current authenticated user is in the admin list."""
+    user = get_current_user()
+    if not user:
+        return False
+    email = (user.get("email") or "").strip().lower()
+    return email in Config.ADMIN_EMAILS
 
 
 def require_auth() -> dict:
