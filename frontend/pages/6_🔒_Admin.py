@@ -274,7 +274,10 @@ def _render_users() -> None:
                 st.markdown(f"**Updated:** {_date_str(u.get('updated_at'))}")
                 st.markdown(f"**Last Active:** {last}")
 
-            with st.expander("💬 Recent Messages", expanded=False):
+            # Use tabs instead of nested expanders (Streamlit forbids nesting)
+            u_tab_msgs, u_tab_mems, u_tab_actions = st.tabs(["💬 Messages", "🧠 Memories", "⚙️ Actions"])
+
+            with u_tab_msgs:
                 user_msgs = [m for m in all_msgs if m.get("user_id") == uid][:25]
                 if user_msgs:
                     for msg in user_msgs:
@@ -289,7 +292,7 @@ def _render_users() -> None:
                 else:
                     st.caption("No messages.")
 
-            with st.expander("🧠 Memories", expanded=False):
+            with u_tab_mems:
                 user_mems = [m for m in all_mems if m.get("user_id") == uid][:25]
                 if user_mems:
                     for mem in user_mems:
@@ -301,8 +304,8 @@ def _render_users() -> None:
                 else:
                     st.caption("No memories.")
 
-            st.divider()
-            ac1, ac2, ac3 = st.columns(3)
+            with u_tab_actions:
+                ac1, ac2, ac3 = st.columns(3)
             with ac1:
                 if st.button("🗑️ Delete Chat", key=f"del_c_{uid}"):
                     try:
