@@ -28,6 +28,9 @@ from frontend.components.chat_interface import (  # noqa: E402
     render_chat_history,
 )
 from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
+from frontend.components.auth import require_auth  # noqa: E402
+from backend.services.supabase_service import SupabaseManager  # noqa: E402
+from backend.services.memory_engine import get_memory_engine  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -138,12 +141,23 @@ def main() -> None:
     # ── Sidebar (returns selected language code) ───────────────────────
     lang = render_sidebar()
 
+    # ── Auth gate (shows login form & stops if not authenticated) ──────
+    user = require_auth()
+
     # ── Header ─────────────────────────────────────────────────────────
     render_page_header(
         title=_ui(lang, "title").replace("🌾 ", ""),
         subtitle=_ui(lang, "subtitle"),
         icon_name="leaf",
     )
+
+    # ── Load persisted chat history for this user (first load) ─────────
+    if SupabaseManager.is_configured() and user.get("id") != "local":
+        if "_chat_loaded" not in st.session_state:
+            saved = SupabaseManager.load_messages(user["id"])
+            if saved:
+                st.session_state["messages"] = saved
+            st.session_state["_chat_loaded"] = True
 
     # ── Welcome message (only if chat is empty) ────────────────────────
     if not st.session_state["messages"]:
@@ -178,18 +192,34 @@ def main() -> None:
     )
     render_message("user", query)
 
+    # Persist user message to Supabase
+    if SupabaseManager.is_configured() and user.get("id") != "local":
+        SupabaseManager.save_message(user["id"], "user", query)
+
     # ── Translate user query to English if needed ──────────────────────
     if lang != "en":
         query_en = translator.to_english(query, src=lang)
     else:
         query_en = query
 
+    # ── Retrieve memory context for this user ──────────────────────────
+    memory_context = ""
+    user_id = user.get("id", "local")
+    if SupabaseManager.is_configured() and user_id != "local":
+        try:
+            mem_engine = get_memory_engine(user_id)
+            memory_context = mem_engine.get_memory_context(query_en)
+            if memory_context:
+                logger.info("Injecting %d chars of memory context", len(memory_context))
+        except Exception as exc:
+            logger.warning("Memory retrieval failed (non-fatal): %s", exc)
+
     # ── Get AI response ────────────────────────────────────────────────
     with st.chat_message("assistant", avatar="🌾"):
         with st.spinner(_ui(lang, "thinking")):
             try:
                 start = time.time()
-                result = app.ask(query_en)
+                result = app.ask(query_en, user_id=user_id, memory_context=memory_context)
                 elapsed = time.time() - start
                 logger.info("Response in %.1fs  intent=%s", elapsed, result.get("intent", {}).get("primary_intent"))
 
@@ -220,6 +250,20 @@ def main() -> None:
     st.session_state["messages"].append(
         {"role": "assistant", "content": response_text, "sources": sources}
     )
+
+    # Persist assistant message to Supabase
+    if SupabaseManager.is_configured() and user.get("id") != "local":
+        SupabaseManager.save_message(user["id"], "assistant", response_text, sources)
+
+    # ── Extract & store memories from this conversation turn ───────────
+    if SupabaseManager.is_configured() and user.get("id") != "local":
+        try:
+            mem_engine = get_memory_engine(user["id"])
+            new_memories = mem_engine.add_from_conversation(query_en, response_text)
+            if new_memories:
+                logger.info("Stored %d new memories from this turn", len(new_memories))
+        except Exception as exc:
+            logger.warning("Memory extraction failed (non-fatal): %s", exc)
 
 
 if __name__ == "__main__":

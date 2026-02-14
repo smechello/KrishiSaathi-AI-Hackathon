@@ -175,6 +175,35 @@ class LLMHelper:
     def clear_cache(self) -> None:
         self._cache.clear()
 
+    def reload_config(self) -> None:
+        """Reload model maps and settings from Config (after admin changes)."""
+        self._backend = Config.LLM_BACKEND
+        self._groq_model_map = {
+            "classifier": Config.GROQ_MODEL_CLASSIFIER,
+            "agent": Config.GROQ_MODEL_AGENT,
+            "synthesis": Config.GROQ_MODEL_SYNTHESIS,
+        }
+        self._gemini_model_map = {
+            "classifier": Config.MODEL_CLASSIFIER,
+            "agent": Config.MODEL_AGENT,
+            "synthesis": Config.MODEL_SYNTHESIS,
+        }
+        self._groq_fallback = Config.GROQ_FALLBACK_CHAIN
+        self._gemini_fallback = Config.GEMINI_FALLBACK_CHAIN
+        self._max_retries = Config.LLM_MAX_RETRIES
+        self._base_delay = Config.LLM_RETRY_BASE_DELAY
+        new_size = Config.LLM_CACHE_SIZE
+        if new_size != self._cache_size:
+            self._cache_size = new_size
+            self._cache.clear()
+        self._blocked_models.clear()
+        self._gemini_models.clear()
+        logger.info(
+            "LLMHelper reloaded  (backend=%s  agent=%s)",
+            self._backend,
+            self._groq_model_map["agent"] if self._backend == "groq" else self._gemini_model_map["agent"],
+        )
+
     # ── Groq backend ───────────────────────────────────────────────────
 
     def _generate_groq(self, prompt: str, role: str) -> str:

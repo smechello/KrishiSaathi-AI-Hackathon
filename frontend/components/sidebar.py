@@ -8,6 +8,8 @@ import os
 import streamlit as st
 
 from backend.config import Config
+from backend.services.supabase_service import SupabaseManager
+from backend.services.memory_engine import get_memory_engine
 from frontend.components.theme import (
     ICON,
     icon,
@@ -17,6 +19,7 @@ from frontend.components.theme import (
     inject_global_css,
     _logo_b64,
 )
+from frontend.components.auth import is_admin
 
 # ── Language display names in their own script ─────────────────────────
 LANGUAGE_LABELS: dict[str, str] = {
@@ -134,6 +137,50 @@ def render_sidebar() -> str:
 
         st.divider()
 
+        # ── User Profile (only when authenticated) ─────────────────────
+        _is_authed = st.session_state.get("authenticated", False)
+        _user = st.session_state.get("auth_user")
+
+        if SupabaseManager.is_configured() and _is_authed and _user:
+            user_icon = icon("user", size=18, color=p["primary"]) if "user" in ICON else "👤"
+            display_name = _user.get("full_name") or _user.get("email", "User")
+            st.markdown(
+                f'<div style="display:flex; align-items:center; gap:0.5rem; '
+                f'padding:0.6rem 0.75rem; background:{p["surface"]}; '
+                f'border-radius:10px; margin-bottom:0.5rem;">'
+                f'  <div style="width:36px; height:36px; border-radius:50%; '
+                f'background:{p["primary"]}; display:flex; align-items:center; '
+                f'justify-content:center; color:#fff; font-weight:700; font-size:1rem;">'
+                f'{display_name[0].upper()}</div>'
+                f'  <div style="flex:1; min-width:0;">'
+                f'    <div style="font-weight:600; font-size:0.9rem; color:{p["text"]}; '
+                f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{display_name}</div>'
+                f'    <div style="font-size:0.75rem; color:{p["text_muted"]}; '
+                f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{_user.get("email","")}</div>'
+                f'  </div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+            if st.button("🚪 Sign Out", use_container_width=True, key="btn_logout"):
+                SupabaseManager.sign_out()
+                st.session_state["messages"] = []
+                st.session_state.pop("_chat_loaded", None)
+                st.rerun()
+
+            # ── Admin badge ────────────────────────────────────────────
+            if is_admin():
+                st.markdown(
+                    f'<div style="display:flex; align-items:center; gap:0.4rem; '
+                    f'padding:0.4rem 0.7rem; background:{p["warning"]}22; '
+                    f'border:1px solid {p["warning"]}44; border-radius:8px; margin-top:0.4rem;">'
+                    f'🔒 <span style="font-weight:600; font-size:0.85rem; color:{p["warning"]};">Admin</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+            st.divider()
+
         # ── Language selector ──────────────────────────────────────────
         lang_icon = icon("language", size=18, color=p["primary"])
         st.markdown(
@@ -193,6 +240,11 @@ def render_sidebar() -> str:
 
         st.divider()
 
+        # ── Memory Panel (only when authenticated) ─────────────────────
+        if SupabaseManager.is_configured() and _is_authed and _user:
+            _render_memory_panel(_user, lang, p)
+            st.divider()
+
         # ── Chat controls ──────────────────────────────────────────────
         clear_label = {
             "en": "Clear Chat",
@@ -203,6 +255,10 @@ def render_sidebar() -> str:
         if st.button(f"🗑️ {clear_label}", use_container_width=True, key="btn_clear"):
             st.session_state["messages"] = []
             st.session_state.pop("pending_query", None)
+            st.session_state.pop("_chat_loaded", None)
+            # Also clear from Supabase if authenticated
+            if SupabaseManager.is_configured() and _is_authed and _user:
+                SupabaseManager.clear_messages(_user["id"])
             st.rerun()
 
         # ── Footer ─────────────────────────────────────────────────────
@@ -220,3 +276,112 @@ def render_sidebar() -> str:
         )
 
     return st.session_state.get("language", Config.DEFAULT_LANGUAGE)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Memory Panel — shows memory stats & management
+# ═══════════════════════════════════════════════════════════════════════
+
+CATEGORY_ICONS: dict[str, str] = {
+    "personal": "👤",
+    "location": "📍",
+    "farming": "🌾",
+    "crops": "🌿",
+    "equipment": "🚜",
+    "livestock": "🐄",
+    "soil": "🪴",
+    "preferences": "⚙️",
+    "experience": "📚",
+    "financial": "💰",
+}
+
+MEMORY_LABELS: dict[str, dict[str, str]] = {
+    "en": {"header": "Memory", "count": "memories", "clear": "Clear All Memories", "empty": "No memories yet — start chatting!"},
+    "te": {"header": "జ్ఞాపకాలు", "count": "జ్ఞాపకాలు", "clear": "అన్ని జ్ఞాపకాలు తొలగించు", "empty": "ఇంకా జ్ఞాపకాలు లేవు — చాట్ చేయడం ప్రారంభించండి!"},
+    "hi": {"header": "स्मृति", "count": "यादें", "clear": "सभी यादें मिटाएं", "empty": "अभी तक कोई याद नहीं — चैट शुरू करें!"},
+}
+
+
+def _render_memory_panel(user: dict, lang: str, p: dict) -> None:
+    """Render the memory management panel in the sidebar."""
+    labels = MEMORY_LABELS.get(lang, MEMORY_LABELS["en"])
+    user_id = user.get("id", "")
+    if not user_id:
+        return
+
+    brain_icon = icon("brain", size=18, color=p["primary"]) if "brain" in ICON else "🧠"
+    st.markdown(
+        f'<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.3rem;">'
+        f'{brain_icon} <span style="font-weight:600; font-size:0.95rem;">{labels["header"]}</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    try:
+        mem_engine = get_memory_engine(user_id)
+        stats = mem_engine.stats()
+        total = stats.get("total", 0)
+        cats = stats.get("categories", {})
+    except Exception:
+        total = 0
+        cats = {}
+
+    if total == 0:
+        st.caption(labels["empty"])
+        return
+
+    # Summary badge
+    st.markdown(
+        f'<div style="background:{p["surface"]}; padding:0.5rem 0.75rem; '
+        f'border-radius:10px; margin-bottom:0.4rem;">'
+        f'<span style="font-weight:700; color:{p["primary"]}; font-size:1.3rem;">{total}</span> '
+        f'<span style="color:{p["text_muted"]}; font-size:0.85rem;">{labels["count"]}</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Category breakdown
+    if cats:
+        cat_parts = []
+        for cat, count in sorted(cats.items(), key=lambda x: x[1], reverse=True):
+            emoji = CATEGORY_ICONS.get(cat, "📌")
+            cat_parts.append(f'{emoji} {cat}: **{count}**')
+        st.markdown("  \n".join(cat_parts))
+
+    # Expandable: View Memories
+    with st.expander("🔍 View Memories", expanded=False):
+        try:
+            memories = mem_engine.get_all(limit=30)
+            for m in memories:
+                cat = m.get("category", "")
+                emoji = CATEGORY_ICONS.get(cat, "📌")
+                imp = m.get("importance", 5)
+                imp_bar = "●" * imp + "○" * (10 - imp)
+                content = m.get("content", "")
+                mid = m.get("id")
+
+                col1, col2 = st.columns([5, 1])
+                with col1:
+                    st.markdown(
+                        f'<div style="font-size:0.82rem; padding:0.3rem 0; '
+                        f'border-bottom:1px solid {p["border"]};">'
+                        f'{emoji} <b>{cat}</b> — {content}<br>'
+                        f'<span style="color:{p["text_muted"]}; font-size:0.72rem;">'
+                        f'Importance: {imp_bar}</span></div>',
+                        unsafe_allow_html=True,
+                    )
+                with col2:
+                    if st.button("🗑", key=f"del_mem_{mid}", help="Delete this memory"):
+                        mem_engine.delete(mid)
+                        st.rerun()
+        except Exception:
+            st.caption("Could not load memories.")
+
+    # Clear all memories button
+    if st.button(f"🧹 {labels['clear']}", use_container_width=True, key="btn_clear_memories"):
+        try:
+            mem_engine = get_memory_engine(user_id)
+            mem_engine.clear_all()
+            st.toast("All memories cleared!", icon="🧹")
+            st.rerun()
+        except Exception:
+            st.error("Failed to clear memories.")

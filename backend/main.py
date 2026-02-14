@@ -40,8 +40,17 @@ class KrishiSaathi:
 
     # ── public API ─────────────────────────────────────────────────────
 
-    def ask(self, query: str) -> dict[str, Any]:
+    def ask(self, query: str, user_id: str | None = None, memory_context: str = "") -> dict[str, Any]:
         """Process a farmer query end-to-end.
+
+        Parameters
+        ----------
+        query : str
+            The farmer's question (in English).
+        user_id : str | None
+            Authenticated user ID (for memory personalisation).
+        memory_context : str
+            Pre-formatted memory context block to inject into prompts.
 
         Returns
         -------
@@ -51,7 +60,7 @@ class KrishiSaathi:
             sources   – list of source labels
             agent_responses – per-agent raw results
         """
-        return self._supervisor.handle_query(query)
+        return self._supervisor.handle_query(query, memory_context=memory_context)
 
     @property
     def rag(self) -> RAGEngine | None:
