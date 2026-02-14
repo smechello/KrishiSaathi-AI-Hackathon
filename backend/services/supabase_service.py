@@ -9,21 +9,24 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import streamlit as st
 
 from backend.config import Config
+
+if TYPE_CHECKING:
+    from supabase import Client
 
 logger = logging.getLogger(__name__)
 
 # ── Lazy import so the app still loads when supabase isn't installed ───
 _supabase_available: bool = False
 try:
-    from supabase import create_client, Client  # type: ignore
+    from supabase import create_client  # type: ignore
     _supabase_available = True
 except ImportError:
-    Client = None  # type: ignore
+    pass
 
 
 # ═══════════════════════════════════════════════════════════════════════

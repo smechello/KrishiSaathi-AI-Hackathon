@@ -101,3 +101,93 @@ class Config:
     # Database
     DB_PATH: str = "data/krishisaathi.db"
     CHROMA_DB_PATH: str = "data/chroma_db"
+
+    # ── Admin-editable settings (persisted in JSON) ───────────────────
+    ADMIN_SETTINGS_FILE: str = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "config", "admin_settings.json",
+    )
+
+    @classmethod
+    def load_admin_settings(cls) -> dict:
+        """Load admin-editable settings from JSON file."""
+        try:
+            if os.path.exists(cls.ADMIN_SETTINGS_FILE):
+                with open(cls.ADMIN_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    @classmethod
+    def save_admin_settings(cls, settings: dict) -> None:
+        """Persist admin settings to JSON and apply to runtime."""
+        os.makedirs(os.path.dirname(cls.ADMIN_SETTINGS_FILE), exist_ok=True)
+        with open(cls.ADMIN_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
+        cls.apply_admin_overrides(settings)
+
+    @classmethod
+    def apply_admin_overrides(cls, settings: dict | None = None) -> None:
+        """Apply admin settings overrides to Config class attributes."""
+        if settings is None:
+            settings = cls.load_admin_settings()
+        if not settings:
+            return
+        llm = settings.get("llm", {})
+        if "backend" in llm:
+            cls.LLM_BACKEND = llm["backend"]
+        if "groq_classifier" in llm:
+            cls.GROQ_MODEL_CLASSIFIER = llm["groq_classifier"]
+        if "groq_agent" in llm:
+            cls.GROQ_MODEL_AGENT = llm["groq_agent"]
+        if "groq_synthesis" in llm:
+            cls.GROQ_MODEL_SYNTHESIS = llm["groq_synthesis"]
+        if "gemini_classifier" in llm:
+            cls.MODEL_CLASSIFIER = llm["gemini_classifier"]
+        if "gemini_agent" in llm:
+            cls.MODEL_AGENT = llm["gemini_agent"]
+        if "gemini_synthesis" in llm:
+            cls.MODEL_SYNTHESIS = llm["gemini_synthesis"]
+        if "embedding_model" in llm:
+            cls.EMBEDDING_MODEL = llm["embedding_model"]
+        if "max_retries" in llm:
+            cls.LLM_MAX_RETRIES = int(llm["max_retries"])
+        if "retry_delay" in llm:
+            cls.LLM_RETRY_BASE_DELAY = int(llm["retry_delay"])
+        if "cache_size" in llm:
+            cls.LLM_CACHE_SIZE = int(llm["cache_size"])
+        app = settings.get("app", {})
+        if "default_language" in app:
+            cls.DEFAULT_LANGUAGE = app["default_language"]
+
+    @classmethod
+    def get_current_admin_settings(cls) -> dict:
+        """Return current config values as a serialisable dict."""
+        saved = cls.load_admin_settings()
+        return {
+            "llm": {
+                "backend": cls.LLM_BACKEND,
+                "groq_classifier": cls.GROQ_MODEL_CLASSIFIER,
+                "groq_agent": cls.GROQ_MODEL_AGENT,
+                "groq_synthesis": cls.GROQ_MODEL_SYNTHESIS,
+                "gemini_classifier": cls.MODEL_CLASSIFIER,
+                "gemini_agent": cls.MODEL_AGENT,
+                "gemini_synthesis": cls.MODEL_SYNTHESIS,
+                "embedding_model": cls.EMBEDDING_MODEL,
+                "max_retries": cls.LLM_MAX_RETRIES,
+                "retry_delay": cls.LLM_RETRY_BASE_DELAY,
+                "cache_size": cls.LLM_CACHE_SIZE,
+            },
+            "app": {
+                "default_language": cls.DEFAULT_LANGUAGE,
+            },
+            "api_sources": saved.get("api_sources", []),
+        }
+
+
+# ── Apply any saved admin overrides on import ─────────────────────────
+try:
+    Config.apply_admin_overrides()
+except Exception:
+    pass

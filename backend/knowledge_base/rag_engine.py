@@ -216,6 +216,160 @@ class RAGEngine:
             except Exception:
                 pass
 
+    # ── Admin document management API ──────────────────────────────────
+
+    def add_json_documents(
+        self,
+        json_data: list[dict] | dict,
+        collection_name: str,
+        root_key: str | None = None,
+    ) -> int:
+        """Ingest parsed JSON data into a collection.
+
+        Accepts a bare list of records **or** a dict with a ``root_key``
+        pointing to the list.  Returns the number of documents ingested.
+        """
+        if isinstance(json_data, dict):
+            if root_key:
+                records = json_data.get(root_key, [])
+            else:
+                # Auto-detect: first value that is a list
+                records = []
+                for v in json_data.values():
+                    if isinstance(v, list):
+                        records = v
+                        break
+                if not records:
+                    records = [json_data]
+        else:
+            records = json_data
+
+        if not records:
+            return 0
+
+        chunks = self._records_to_chunks(records, collection_name)
+        return self._upsert_chunks(collection_name, chunks)
+
+    def add_text_document(
+        self,
+        text: str,
+        collection_name: str,
+        doc_id: str | None = None,
+        metadata: dict | None = None,
+    ) -> bool:
+        """Add a single text document to a collection."""
+        collection = self._client.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"},
+        )
+        doc_id = doc_id or f"{collection_name}_{collection.count()}"
+        meta = metadata or {"source": collection_name}
+        embedding = self._embed_text(text)
+        collection.upsert(
+            ids=[doc_id],
+            documents=[text],
+            embeddings=[embedding],
+            metadatas=[meta],
+        )
+        return True
+
+    def add_from_url(
+        self,
+        url: str,
+        collection_name: str,
+        root_key: str | None = None,
+        headers: dict | None = None,
+    ) -> dict[str, Any]:
+        """Fetch JSON from a URL and ingest into a collection.
+
+        Returns ``{"success": True, "documents_added": int}`` or
+        ``{"success": False, "error": str}``.
+        """
+        import requests  # available via streamlit dependency chain
+
+        try:
+            resp = requests.get(url, headers=headers or {}, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            count = self.add_json_documents(data, collection_name, root_key)
+            return {"success": True, "documents_added": count, "url": url}
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
+
+    def fetch_url_preview(
+        self,
+        url: str,
+        headers: dict | None = None,
+    ) -> dict[str, Any]:
+        """Fetch a URL and return a preview of the JSON structure."""
+        import requests
+
+        try:
+            resp = requests.get(url, headers=headers or {}, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            # Build a preview
+            preview: dict[str, Any] = {"success": True, "status_code": resp.status_code}
+            if isinstance(data, list):
+                preview["type"] = "array"
+                preview["length"] = len(data)
+                preview["sample"] = data[:3]
+            elif isinstance(data, dict):
+                preview["type"] = "object"
+                preview["keys"] = list(data.keys())
+                # Find list-valued keys
+                list_keys = {k: len(v) for k, v in data.items() if isinstance(v, list)}
+                preview["list_keys"] = list_keys
+                preview["sample"] = {k: (v[:2] if isinstance(v, list) else v) for k, v in list(data.items())[:5]}
+            else:
+                preview["type"] = type(data).__name__
+                preview["sample"] = str(data)[:500]
+            return preview
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
+
+    def list_all_collections(self) -> list[dict[str, Any]]:
+        """List every ChromaDB collection with metadata + doc count."""
+        results: list[dict[str, Any]] = []
+        try:
+            for col in self._client.list_collections():
+                results.append({
+                    "name": col.name,
+                    "count": col.count(),
+                    "metadata": col.metadata or {},
+                })
+        except Exception as exc:
+            logger.warning("list_all_collections failed: %s", exc)
+        return results
+
+    def get_collection_sample(
+        self, collection_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Return sample documents from a collection."""
+        try:
+            col = self._client.get_collection(collection_name)
+            results = col.peek(limit)
+            docs: list[dict[str, Any]] = []
+            for i in range(len(results["ids"])):
+                docs.append({
+                    "id": results["ids"][i],
+                    "document": (results["documents"][i] or "")[:500],
+                    "metadata": results["metadatas"][i] if results["metadatas"] else {},
+                })
+            return docs
+        except Exception:
+            return []
+
+    def delete_collection_by_name(self, name: str) -> bool:
+        """Delete a single collection by name."""
+        try:
+            self._client.delete_collection(name)
+            logger.info("Deleted collection: %s", name)
+            return True
+        except Exception as exc:
+            logger.warning("delete_collection_by_name(%s) failed: %s", name, exc)
+            return False
+
     # ── private helpers ────────────────────────────────────────────────
 
     def _embed_text(self, text: str, max_retries: int = 3) -> list[float]:

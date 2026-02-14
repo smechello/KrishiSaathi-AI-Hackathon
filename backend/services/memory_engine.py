@@ -28,19 +28,22 @@ import json
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from backend.config import Config
+
+if TYPE_CHECKING:
+    from supabase import Client
 
 logger = logging.getLogger(__name__)
 
 # ── Optional imports ────────────────────────────────────────────────────
 _supabase_ok = False
 try:
-    from supabase import create_client, Client
+    from supabase import create_client
     _supabase_ok = True
 except ImportError:
-    Client = None  # type: ignore
+    pass
 
 _genai_ok = False
 try:
