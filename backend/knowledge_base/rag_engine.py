@@ -25,21 +25,31 @@ from backend.config import Config
 logger = logging.getLogger(__name__)
 
 # ── Mapping of JSON files to ChromaDB collection names ───────────────
+# Searched in BOTH backend/knowledge_base/documents/ AND backend/data/
 COLLECTION_MAP: dict[str, str] = {
+    # Knowledge-base documents (backend/knowledge_base/documents/)
     "crop_diseases.json": "crop_diseases",
     "farming_practices.json": "farming_practices",
     "government_schemes.json": "government_schemes",
     "market_data.json": "market_data",
     "soil_data.json": "soil_data",
+    # Data files (backend/data/)
+    "crop_calendar.json": "crop_calendar",
+    "mandi_prices.json": "mandi_prices",
+    "schemes_database.json": "schemes_database",
 }
 
-# Top-level JSON key inside each file that holds the list of records
-ROOT_KEY_MAP: dict[str, str] = {
+# Top-level JSON key inside each file that holds the list of records.
+# Use None for files that are a bare JSON array at the top level.
+ROOT_KEY_MAP: dict[str, str | None] = {
     "crop_diseases.json": "crop_diseases",
     "farming_practices.json": "farming_practices",
     "government_schemes.json": "schemes",
     "market_data.json": "market_data",
     "soil_data.json": "soils",
+    "crop_calendar.json": None,        # bare list
+    "mandi_prices.json": None,         # bare list
+    "schemes_database.json": "schemes",
 }
 
 
@@ -62,30 +72,56 @@ class RAGEngine:
         """Load every JSON knowledge-base file, chunk it, embed it, and upsert
         into the corresponding ChromaDB collection.
 
+        Searches both ``backend/knowledge_base/documents/`` and ``backend/data/``
+        unless *documents_dir* explicitly overrides.
+
         Returns a dict mapping collection name → number of documents ingested.
         """
-        docs_dir = documents_dir or self._default_documents_path()
+        search_dirs: list[str] = []
+        if documents_dir:
+            search_dirs.append(documents_dir)
+        else:
+            search_dirs.append(self._default_documents_path())
+            search_dirs.append(self._default_data_path())
+
         stats: dict[str, int] = {}
 
         for filename, collection_name in COLLECTION_MAP.items():
-            filepath = os.path.join(docs_dir, filename)
-            if not os.path.exists(filepath):
-                logger.warning("Skipping missing file: %s", filepath)
+            # Find the file in any of the search directories
+            filepath: str | None = None
+            for d in search_dirs:
+                candidate = os.path.join(d, filename)
+                if os.path.exists(candidate):
+                    filepath = candidate
+                    break
+
+            if filepath is None:
+                logger.debug("Skipping %s — not found in any search dir", filename)
                 continue
 
             with open(filepath, "r", encoding="utf-8") as fh:
                 raw = json.load(fh)
 
-            root_key = ROOT_KEY_MAP.get(filename, "data")
-            records: list[dict[str, Any]] = raw.get(root_key, [])
+            # Handle both bare-list and dict-wrapped JSON
+            root_key = ROOT_KEY_MAP.get(filename)
+            if root_key is None:
+                # File is a bare JSON array at the top level
+                if isinstance(raw, list):
+                    records: list[dict[str, Any]] = raw
+                else:
+                    logger.warning("Expected list in %s but got %s", filename, type(raw).__name__)
+                    continue
+            else:
+                records = raw.get(root_key, [])
+
             if not records:
-                logger.warning("No records under key '%s' in %s", root_key, filename)
+                logger.warning("No records in %s (key='%s')", filename, root_key)
                 continue
 
             chunks = self._records_to_chunks(records, collection_name)
             count = self._upsert_chunks(collection_name, chunks)
             stats[collection_name] = count
-            logger.info("  ✓ %s  →  %d chunks ingested", collection_name, count)
+            logger.info("  ✓ %s  →  %d chunks ingested (from %s)", collection_name, count, os.path.basename(filepath))
 
         return stats
 
@@ -180,6 +216,160 @@ class RAGEngine:
             except Exception:
                 pass
 
+    # ── Admin document management API ──────────────────────────────────
+
+    def add_json_documents(
+        self,
+        json_data: list[dict] | dict,
+        collection_name: str,
+        root_key: str | None = None,
+    ) -> int:
+        """Ingest parsed JSON data into a collection.
+
+        Accepts a bare list of records **or** a dict with a ``root_key``
+        pointing to the list.  Returns the number of documents ingested.
+        """
+        if isinstance(json_data, dict):
+            if root_key:
+                records = json_data.get(root_key, [])
+            else:
+                # Auto-detect: first value that is a list
+                records = []
+                for v in json_data.values():
+                    if isinstance(v, list):
+                        records = v
+                        break
+                if not records:
+                    records = [json_data]
+        else:
+            records = json_data
+
+        if not records:
+            return 0
+
+        chunks = self._records_to_chunks(records, collection_name)
+        return self._upsert_chunks(collection_name, chunks)
+
+    def add_text_document(
+        self,
+        text: str,
+        collection_name: str,
+        doc_id: str | None = None,
+        metadata: dict | None = None,
+    ) -> bool:
+        """Add a single text document to a collection."""
+        collection = self._client.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"},
+        )
+        doc_id = doc_id or f"{collection_name}_{collection.count()}"
+        meta = metadata or {"source": collection_name}
+        embedding = self._embed_text(text)
+        collection.upsert(
+            ids=[doc_id],
+            documents=[text],
+            embeddings=[embedding],
+            metadatas=[meta],
+        )
+        return True
+
+    def add_from_url(
+        self,
+        url: str,
+        collection_name: str,
+        root_key: str | None = None,
+        headers: dict | None = None,
+    ) -> dict[str, Any]:
+        """Fetch JSON from a URL and ingest into a collection.
+
+        Returns ``{"success": True, "documents_added": int}`` or
+        ``{"success": False, "error": str}``.
+        """
+        import requests  # available via streamlit dependency chain
+
+        try:
+            resp = requests.get(url, headers=headers or {}, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            count = self.add_json_documents(data, collection_name, root_key)
+            return {"success": True, "documents_added": count, "url": url}
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
+
+    def fetch_url_preview(
+        self,
+        url: str,
+        headers: dict | None = None,
+    ) -> dict[str, Any]:
+        """Fetch a URL and return a preview of the JSON structure."""
+        import requests
+
+        try:
+            resp = requests.get(url, headers=headers or {}, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            # Build a preview
+            preview: dict[str, Any] = {"success": True, "status_code": resp.status_code}
+            if isinstance(data, list):
+                preview["type"] = "array"
+                preview["length"] = len(data)
+                preview["sample"] = data[:3]
+            elif isinstance(data, dict):
+                preview["type"] = "object"
+                preview["keys"] = list(data.keys())
+                # Find list-valued keys
+                list_keys = {k: len(v) for k, v in data.items() if isinstance(v, list)}
+                preview["list_keys"] = list_keys
+                preview["sample"] = {k: (v[:2] if isinstance(v, list) else v) for k, v in list(data.items())[:5]}
+            else:
+                preview["type"] = type(data).__name__
+                preview["sample"] = str(data)[:500]
+            return preview
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
+
+    def list_all_collections(self) -> list[dict[str, Any]]:
+        """List every ChromaDB collection with metadata + doc count."""
+        results: list[dict[str, Any]] = []
+        try:
+            for col in self._client.list_collections():
+                results.append({
+                    "name": col.name,
+                    "count": col.count(),
+                    "metadata": col.metadata or {},
+                })
+        except Exception as exc:
+            logger.warning("list_all_collections failed: %s", exc)
+        return results
+
+    def get_collection_sample(
+        self, collection_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Return sample documents from a collection."""
+        try:
+            col = self._client.get_collection(collection_name)
+            results = col.peek(limit)
+            docs: list[dict[str, Any]] = []
+            for i in range(len(results["ids"])):
+                docs.append({
+                    "id": results["ids"][i],
+                    "document": (results["documents"][i] or "")[:500],
+                    "metadata": results["metadatas"][i] if results["metadatas"] else {},
+                })
+            return docs
+        except Exception:
+            return []
+
+    def delete_collection_by_name(self, name: str) -> bool:
+        """Delete a single collection by name."""
+        try:
+            self._client.delete_collection(name)
+            logger.info("Deleted collection: %s", name)
+            return True
+        except Exception as exc:
+            logger.warning("delete_collection_by_name(%s) failed: %s", name, exc)
+            return False
+
     # ── private helpers ────────────────────────────────────────────────
 
     def _embed_text(self, text: str, max_retries: int = 3) -> list[float]:
@@ -270,22 +460,37 @@ class RAGEngine:
 
             # Add key filterable metadata depending on collection type
             if collection_name == "crop_diseases":
-                metadata["crop"] = rec.get("crop", "")
-                metadata["category"] = rec.get("category", "")
-                metadata["severity"] = rec.get("severity", "")
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["category"] = str(rec.get("category", ""))
+                metadata["severity"] = str(rec.get("severity", ""))
             elif collection_name == "farming_practices":
-                metadata["category"] = rec.get("category", "")
-                metadata["season"] = rec.get("season", "")
+                metadata["category"] = str(rec.get("category", ""))
+                metadata["season"] = str(rec.get("season", ""))
             elif collection_name == "government_schemes":
-                metadata["category"] = rec.get("category", "")
-                metadata["name"] = rec.get("name", "")
+                metadata["category"] = str(rec.get("category", ""))
+                metadata["name"] = str(rec.get("name", ""))
             elif collection_name == "market_data":
-                metadata["crop"] = rec.get("crop", "")
-                metadata["category"] = rec.get("category", "")
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["category"] = str(rec.get("category", ""))
             elif collection_name == "soil_data":
-                metadata["type"] = rec.get("type", "")
+                metadata["type"] = str(rec.get("type", ""))
 
-            chunks.append({"id": rec_id or f"{collection_name}_{len(chunks)}", "text": text, "metadata": metadata})
+            elif collection_name == "crop_calendar":
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["season"] = str(rec.get("season", ""))
+                metadata["region"] = str(rec.get("region", ""))
+
+            elif collection_name == "mandi_prices":
+                metadata["crop"] = str(rec.get("crop", ""))
+                metadata["market"] = str(rec.get("market", ""))
+
+            elif collection_name == "schemes_database":
+                metadata["name"] = str(rec.get("name", ""))
+                metadata["type"] = str(rec.get("type", ""))
+
+            # Generate deterministic ID
+            rec_id_str = rec_id or f"{collection_name}_{len(chunks)}"
+            chunks.append({"id": rec_id_str, "text": text, "metadata": metadata})
 
         return chunks
 
@@ -348,4 +553,12 @@ class RAGEngine:
             os.path.dirname(os.path.dirname(__file__)),
             "knowledge_base",
             "documents",
+        )
+
+    @staticmethod
+    def _default_data_path() -> str:
+        """Return the default backend/data/ directory."""
+        return os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "data",
         )

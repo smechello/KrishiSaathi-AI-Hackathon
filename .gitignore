@@ -52,6 +52,9 @@ env/
 *.sqlite3
 data/chroma_db/
 
+# Admin runtime config (per-deployment)
+config/admin_settings.json
+
 # Logs
 *.log
 logs/

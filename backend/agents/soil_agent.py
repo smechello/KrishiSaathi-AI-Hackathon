@@ -6,12 +6,13 @@ import logging
 from typing import Any
 
 from backend.knowledge_base.rag_engine import RAGEngine
+from backend.services.llm_helper import llm
 
 logger = logging.getLogger(__name__)
 
 
 class SoilAgent:
-	"""Provides soil health analysis and fertilizer recommendations."""
+	"""Provides soil health analysis and fertilizer recommendations with RAG-powered insights."""
 
 	def __init__(self, rag_engine: RAGEngine | None = None) -> None:
 		self._rag = rag_engine
@@ -121,6 +122,90 @@ class SoilAgent:
 		except Exception as exc:
 			logger.warning("RAG soil search failed: %s", exc)
 			return ""
+
+	def answer_soil_query(self, query: str, entities: dict[str, Any] | None = None) -> dict[str, Any]:
+		"""Answer a soil-related question using RAG + LLM with source citations.
+
+		Called by the Supervisor.
+		Returns: {"answer": str, "sources": list[str]}
+		"""
+		entities = entities or {}
+		soil_type = entities.get("soil_type", "")
+		crop = entities.get("crop", "")
+
+		# Gather local soil analysis if soil type is known
+		local_data = ""
+		if soil_type:
+			analysis = self.analyze_soil(soil_type)
+			if isinstance(analysis.get("details"), str):
+				local_data = analysis["details"]
+			else:
+				chars = analysis.get("characteristics", [])
+				notes = analysis.get("notes", [])
+				local_data = f"Soil type: {soil_type}\nCharacteristics: {', '.join(chars)}\nNotes: {', '.join(notes)}"
+
+		if crop:
+			fert = self.get_fertilizer_recommendation(crop, 1.0)
+			local_data += f"\n\nFertilizer recommendation for {crop} (per acre): N={fert['npk_required_kg_per_acre']['n']}, P={fert['npk_required_kg_per_acre']['p']}, K={fert['npk_required_kg_per_acre']['k']} kg"
+
+		# Gather RAG context
+		rag_context = ""
+		sources: list[str] = []
+		if self._rag:
+			try:
+				search_q = query or f"{soil_type} {crop} soil Telangana"
+				hits = self._rag.query(
+					search_q,
+					collection_names=["soil_data", "farming_practices"],
+					n_results=5,
+				)
+				for h in hits:
+					src = self._build_source_label(h)
+					if src not in sources:
+						sources.append(src)
+				rag_context = self._rag.get_relevant_context(
+					search_q,
+					collection_names=["soil_data", "farming_practices"],
+					n_results=5,
+				)
+			except Exception as exc:
+				logger.warning("RAG soil retrieval failed: %s", exc)
+
+		context_parts = []
+		if local_data:
+			context_parts.append(f"Soil analysis data:\n{local_data}")
+		if rag_context:
+			context_parts.append(f"Knowledge base information:\n{rag_context}")
+
+		context_block = "\n\n".join(context_parts)
+
+		prompt = (
+			"You are a Soil Health Expert for KrishiSaathi, serving Telangana farmers.\n\n"
+			"Answer the farmer's soil question with:\n"
+			"- Soil characteristics and suitability\n"
+			"- Recommended fertilizer with exact dosage (kg/acre)\n"
+			"- Organic alternatives\n"
+			"- Crop rotation advice\n"
+			"- Soil improvement tips specific to Telangana\n\n"
+			"Cite sources where applicable as [Source: <source>].\n"
+			f"\n{context_block}\n\n"
+			f"Farmer's question: {query}"
+		)
+		answer = llm.generate(prompt, role="agent")
+		return {
+			"answer": answer,
+			"sources": sources,
+		}
+
+	@staticmethod
+	def _build_source_label(hit: dict[str, Any]) -> str:
+		"""Build a human-readable source label from a RAG hit."""
+		meta = hit.get("metadata", {})
+		name = meta.get("type", meta.get("name", meta.get("category", "")))
+		collection = hit.get("collection", meta.get("source", ""))
+		if name:
+			return f"{collection}: {name}"
+		return collection
 
 	def suggest_crop_rotation(self, crop: str) -> list[str]:
 		"""Suggest a 3-year crop rotation plan for Telangana."""

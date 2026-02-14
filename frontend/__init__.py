@@ -1,0 +1,1 @@
+"""KrishiSaathi frontend package."""
