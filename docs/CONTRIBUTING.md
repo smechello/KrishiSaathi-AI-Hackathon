@@ -14,8 +14,8 @@ We are a team of 4 passionate developers from India, building KrishiSaathi for t
   <tr>
     <td align="center">
       <strong>Shashidhar Reddy N</strong><br/>
-      <em>Team Lead & Full-Stack Developer</em><br/>
-      Multi-agent architecture, RAG pipeline, backend services, deployment<br/><br/>
+      <em>Team Lead & AI Engineer</em><br/>
+      Multi-agent architecture, RAG pipeline, Agent design, deployment<br/><br/>
       <a href="https://linkedin.com/in/reddynalamari">
         <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
       </a>
@@ -25,7 +25,7 @@ We are a team of 4 passionate developers from India, building KrishiSaathi for t
     <td align="center">
       <strong>Vishnu Preshitha M</strong><br/>
       <em>AI/ML Engineer</em><br/>
-      Agent design, LLM prompt engineering, knowledge base curation<br/><br/>
+      RAG design, Backend services, LLM prompt engineering, knowledge base curation<br/><br/>
       <a href="https://linkedin.com/in/vishnupreshitha2222/">
         <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
       </a>
