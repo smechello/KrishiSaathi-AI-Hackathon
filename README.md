@@ -424,7 +424,7 @@ KrishiSaathi directly contributes to:
 
 ## 👥 Team
 
-**Team Name**: [Your Team Name]
+**Team Name**: [KrishiSaathi]
 
 | Name | Role | Expertise |
 |------|------|-----------|
