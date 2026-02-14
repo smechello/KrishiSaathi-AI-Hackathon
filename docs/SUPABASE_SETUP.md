@@ -125,7 +125,65 @@ CREATE TRIGGER on_auth_user_created
 
 ---
 
-## 3. Supabase Auth Settings (Optional but Recommended)
+## 3. Memories Table (AI Memory System)
+
+Run this SQL to enable the mem0-inspired memory system:
+
+```sql
+-- ═══════════════════════════════════════════════════════════════════
+--  KrishiSaathi — Memories (mem0-inspired long-term user memory)
+-- ═══════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.memories (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    content         TEXT NOT NULL,
+    category        TEXT NOT NULL DEFAULT 'personal'
+                    CHECK (category IN (
+                        'personal', 'location', 'farming', 'crops',
+                        'equipment', 'livestock', 'soil', 'preferences',
+                        'experience', 'financial'
+                    )),
+    importance      SMALLINT NOT NULL DEFAULT 5 CHECK (importance BETWEEN 1 AND 10),
+    access_count    INT NOT NULL DEFAULT 0,
+    embedding       TEXT,                          -- JSON-encoded float[] from Gemini
+    metadata        JSONB DEFAULT '{}'::jsonb,     -- extensible key-value store
+    created_at      TIMESTAMPTZ DEFAULT now(),
+    updated_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_memories_user
+    ON public.memories (user_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_memories_category
+    ON public.memories (user_id, category);
+
+COMMENT ON TABLE public.memories IS 'Per-user long-term memories — extracted from conversations by AI.';
+
+-- ── RLS ───────────────────────────────────────────────────────────
+
+ALTER TABLE public.memories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own memories"
+    ON public.memories FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own memories"
+    ON public.memories FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own memories"
+    ON public.memories FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own memories"
+    ON public.memories FOR DELETE
+    USING (auth.uid() = user_id);
+```
+
+---
+
+## 4. Supabase Auth Settings (Optional but Recommended)
 
 In the Supabase Dashboard → **Authentication → Providers → Email**:
 
@@ -139,11 +197,11 @@ In the Supabase Dashboard → **Authentication → Providers → Email**:
 
 ---
 
-## 4. Verify Setup
+## 5. Verify Setup
 
 After running the SQL, check:
 
-1. **Tables** → `profiles` and `chat_history` appear under *Table Editor*
+1. **Tables** → `profiles`, `chat_history`, and `memories` appear under *Table Editor*
 2. **Policies** → Each table shows its RLS policies under *Authentication → Policies*
 3. **Trigger** → `on_auth_user_created` appears under *Database → Triggers*
 

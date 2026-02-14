@@ -111,8 +111,16 @@ class SupervisorAgent:
 
 	# ── Full pipeline: route → call agents → synthesize ────────────────
 
-	def handle_query(self, user_query: str) -> dict[str, Any]:
+	def handle_query(self, user_query: str, memory_context: str = "") -> dict[str, Any]:
 		"""End-to-end handler: classify → route → call agents → synthesize.
+
+		Parameters
+		----------
+		user_query : str
+			The farmer's question (in English).
+		memory_context : str
+			Pre-formatted memory context block (from MemoryEngine) to inject
+			into all agent prompts for personalised responses.
 
 		Returns:
 			{
@@ -129,7 +137,7 @@ class SupervisorAgent:
 
 		for agent_name in routed:
 			try:
-				result = self._dispatch(agent_name, user_query, entities)
+				result = self._dispatch(agent_name, user_query, entities, memory_context=memory_context)
 				if result:
 					agent_responses.append(result)
 			except Exception as exc:
@@ -142,7 +150,7 @@ class SupervisorAgent:
 
 		# If routed to "supervisor" (general query), answer directly with RAG
 		if not agent_responses or "supervisor" in routed:
-			general_resp = self._answer_general(user_query)
+			general_resp = self._answer_general(user_query, memory_context=memory_context)
 			agent_responses.append(general_resp)
 
 		# Synthesize final response
@@ -168,12 +176,20 @@ class SupervisorAgent:
 
 	# ── Agent dispatch ─────────────────────────────────────────────────
 
-	def _dispatch(self, agent_name: str, query: str, entities: dict[str, Any]) -> dict[str, Any] | None:
-		"""Call the appropriate agent method and return a standardised result."""
+	def _dispatch(self, agent_name: str, query: str, entities: dict[str, Any], memory_context: str = "") -> dict[str, Any] | None:
+		"""Call the appropriate agent method and return a standardised result.
+
+		If *memory_context* is provided, it is prepended to the query so that
+		specialist agents can use farmer-specific context without being modified.
+		"""
+		# Build enriched query with memory for specialist agents
+		enriched_query = query
+		if memory_context:
+			enriched_query = f"{memory_context}\n\nFarmer's question: {query}"
 
 		if agent_name == "crop_doctor":
 			agent = self._get_agent("crop_doctor")
-			result = agent.diagnose_from_text(query)
+			result = agent.diagnose_from_text(enriched_query)
 			return {
 				"agent": "crop_doctor",
 				"text": result.get("diagnosis", ""),
@@ -185,9 +201,9 @@ class SupervisorAgent:
 			agent = self._get_agent("market_agent")
 			crop = entities.get("crop", "")
 			if crop:
-				result = agent.get_price_summary(crop, query)
+				result = agent.get_price_summary(crop, enriched_query)
 			else:
-				result = agent.get_price_summary("", query)
+				result = agent.get_price_summary("", enriched_query)
 			return {
 				"agent": "market_agent",
 				"text": result.get("summary", ""),
@@ -197,7 +213,7 @@ class SupervisorAgent:
 
 		if agent_name == "scheme_agent":
 			agent = self._get_agent("scheme_agent")
-			result = agent.answer_scheme_query(query)
+			result = agent.answer_scheme_query(enriched_query)
 			return {
 				"agent": "scheme_agent",
 				"text": result.get("answer", ""),
@@ -229,7 +245,7 @@ class SupervisorAgent:
 					safe_entities[k] = ", ".join(str(x) for x in v)
 				else:
 					safe_entities[k] = v
-			result = agent.answer_soil_query(query, safe_entities)
+			result = agent.answer_soil_query(enriched_query, safe_entities)
 			return {
 				"agent": "soil_agent",
 				"text": result.get("answer", ""),
@@ -241,8 +257,8 @@ class SupervisorAgent:
 
 	# ── General-query handler (uses RAG) ───────────────────────────────
 
-	def _answer_general(self, query: str) -> dict[str, Any]:
-		"""Answer a general agricultural question using RAG context."""
+	def _answer_general(self, query: str, memory_context: str = "") -> dict[str, Any]:
+		"""Answer a general agricultural question using RAG context + memory."""
 		rag_context = ""
 		sources: list[str] = []
 		if self._rag:
@@ -261,11 +277,19 @@ class SupervisorAgent:
 				f"{rag_context}\n\n"
 			)
 
+		# Inject memory context if available
+		memory_block = ""
+		if memory_context:
+			memory_block = f"\n{memory_context}\n"
+
 		prompt = (
 			"You are KrishiSaathi, an expert AI agricultural advisor for Telangana farmers.\n"
 			"Answer the farmer's question clearly, practically, and concisely.\n"
 			"If you use information from the knowledge base below, mention the source.\n"
+			"If farmer memory/context is provided, use it to personalise your answer "
+			"(e.g. refer to their crops, location, soil type by name).\n"
 			f"{context_block}"
+			f"{memory_block}"
 			f"Farmer's question: {query}"
 		)
 		response_text = llm.generate(prompt, role="agent")

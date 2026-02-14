@@ -9,6 +9,7 @@ import streamlit as st
 
 from backend.config import Config
 from backend.services.supabase_service import SupabaseManager
+from backend.services.memory_engine import get_memory_engine
 from frontend.components.theme import (
     ICON,
     icon,
@@ -227,6 +228,11 @@ def render_sidebar() -> str:
 
         st.divider()
 
+        # ── Memory Panel (only when authenticated) ─────────────────────
+        if SupabaseManager.is_configured() and _is_authed and _user:
+            _render_memory_panel(_user, lang, p)
+            st.divider()
+
         # ── Chat controls ──────────────────────────────────────────────
         clear_label = {
             "en": "Clear Chat",
@@ -258,3 +264,112 @@ def render_sidebar() -> str:
         )
 
     return st.session_state.get("language", Config.DEFAULT_LANGUAGE)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Memory Panel — shows memory stats & management
+# ═══════════════════════════════════════════════════════════════════════
+
+CATEGORY_ICONS: dict[str, str] = {
+    "personal": "👤",
+    "location": "📍",
+    "farming": "🌾",
+    "crops": "🌿",
+    "equipment": "🚜",
+    "livestock": "🐄",
+    "soil": "🪴",
+    "preferences": "⚙️",
+    "experience": "📚",
+    "financial": "💰",
+}
+
+MEMORY_LABELS: dict[str, dict[str, str]] = {
+    "en": {"header": "Memory", "count": "memories", "clear": "Clear All Memories", "empty": "No memories yet — start chatting!"},
+    "te": {"header": "జ్ఞాపకాలు", "count": "జ్ఞాపకాలు", "clear": "అన్ని జ్ఞాపకాలు తొలగించు", "empty": "ఇంకా జ్ఞాపకాలు లేవు — చాట్ చేయడం ప్రారంభించండి!"},
+    "hi": {"header": "स्मृति", "count": "यादें", "clear": "सभी यादें मिटाएं", "empty": "अभी तक कोई याद नहीं — चैट शुरू करें!"},
+}
+
+
+def _render_memory_panel(user: dict, lang: str, p: dict) -> None:
+    """Render the memory management panel in the sidebar."""
+    labels = MEMORY_LABELS.get(lang, MEMORY_LABELS["en"])
+    user_id = user.get("id", "")
+    if not user_id:
+        return
+
+    brain_icon = icon("brain", size=18, color=p["primary"]) if "brain" in ICON else "🧠"
+    st.markdown(
+        f'<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.3rem;">'
+        f'{brain_icon} <span style="font-weight:600; font-size:0.95rem;">{labels["header"]}</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    try:
+        mem_engine = get_memory_engine(user_id)
+        stats = mem_engine.stats()
+        total = stats.get("total", 0)
+        cats = stats.get("categories", {})
+    except Exception:
+        total = 0
+        cats = {}
+
+    if total == 0:
+        st.caption(labels["empty"])
+        return
+
+    # Summary badge
+    st.markdown(
+        f'<div style="background:{p["surface"]}; padding:0.5rem 0.75rem; '
+        f'border-radius:10px; margin-bottom:0.4rem;">'
+        f'<span style="font-weight:700; color:{p["primary"]}; font-size:1.3rem;">{total}</span> '
+        f'<span style="color:{p["text_muted"]}; font-size:0.85rem;">{labels["count"]}</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Category breakdown
+    if cats:
+        cat_parts = []
+        for cat, count in sorted(cats.items(), key=lambda x: x[1], reverse=True):
+            emoji = CATEGORY_ICONS.get(cat, "📌")
+            cat_parts.append(f'{emoji} {cat}: **{count}**')
+        st.markdown("  \n".join(cat_parts))
+
+    # Expandable: View Memories
+    with st.expander("🔍 View Memories", expanded=False):
+        try:
+            memories = mem_engine.get_all(limit=30)
+            for m in memories:
+                cat = m.get("category", "")
+                emoji = CATEGORY_ICONS.get(cat, "📌")
+                imp = m.get("importance", 5)
+                imp_bar = "●" * imp + "○" * (10 - imp)
+                content = m.get("content", "")
+                mid = m.get("id")
+
+                col1, col2 = st.columns([5, 1])
+                with col1:
+                    st.markdown(
+                        f'<div style="font-size:0.82rem; padding:0.3rem 0; '
+                        f'border-bottom:1px solid {p["border"]};">'
+                        f'{emoji} <b>{cat}</b> — {content}<br>'
+                        f'<span style="color:{p["text_muted"]}; font-size:0.72rem;">'
+                        f'Importance: {imp_bar}</span></div>',
+                        unsafe_allow_html=True,
+                    )
+                with col2:
+                    if st.button("🗑", key=f"del_mem_{mid}", help="Delete this memory"):
+                        mem_engine.delete(mid)
+                        st.rerun()
+        except Exception:
+            st.caption("Could not load memories.")
+
+    # Clear all memories button
+    if st.button(f"🧹 {labels['clear']}", use_container_width=True, key="btn_clear_memories"):
+        try:
+            mem_engine = get_memory_engine(user_id)
+            mem_engine.clear_all()
+            st.toast("All memories cleared!", icon="🧹")
+            st.rerun()
+        except Exception:
+            st.error("Failed to clear memories.")
