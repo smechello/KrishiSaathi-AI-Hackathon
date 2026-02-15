@@ -165,6 +165,42 @@ class SupabaseManager:
             return {"success": False, "error": _friendly_error(exc)}
 
     @classmethod
+    def update_password(cls, new_password: str) -> dict[str, Any]:
+        """Update the user's password using the current session token.
+        
+        This should be called after the user clicks the password reset link
+        and a session is established with the reset token.
+        
+        Returns ``{"success": True}`` or ``{"success": False, "error": str}``.
+        """
+        try:
+            client = cls._authed_client()
+            client.auth.update_user({"password": new_password})
+            return {"success": True}
+        except Exception as exc:
+            logger.warning("update_password failed: %s", exc)
+            return {"success": False, "error": _friendly_error(exc)}
+
+    @classmethod
+    def verify_recovery_token(cls, access_token: str, refresh_token: str) -> dict[str, Any]:
+        """Verify and set session using recovery tokens from password reset link.
+        
+        This establishes a session using the tokens from the URL query parameters.
+        
+        Returns ``{"success": True, "user": dict}`` or ``{"success": False, "error": str}``.
+        """
+        try:
+            client = cls._new_client()
+            res = client.auth.set_session(access_token, refresh_token)
+            if res and res.session and res.user:
+                _store_session(res.session, res.user)
+                return {"success": True, "user": _user_dict(res.user)}
+            return {"success": False, "error": "Invalid or expired recovery token"}
+        except Exception as exc:
+            logger.warning("verify_recovery_token failed: %s", exc)
+            return {"success": False, "error": _friendly_error(exc)}
+
+    @classmethod
     def restore_session(cls) -> dict | None:
         """Re-validate stored tokens.  Returns user dict or ``None``.
 
