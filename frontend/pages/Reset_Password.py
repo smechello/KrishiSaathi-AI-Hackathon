@@ -83,7 +83,16 @@ def _inject_reset_css(pal: dict, theme: str) -> None:
 
 
 def main() -> None:
-    """Main password reset page logic."""
+    """Main password reset page logic.
+    
+    This function handles the complete password reset flow:
+    1. Verifies Supabase is configured
+    2. Extracts and validates recovery tokens from URL query parameters
+    3. Establishes a temporary session using the recovery tokens
+    4. Displays a password reset form with confirmation
+    5. Updates the password via Supabase on form submission
+    6. Redirects to login page after successful password update
+    """
     
     # Check if Supabase is configured
     if not SupabaseManager.is_configured():
@@ -230,14 +239,9 @@ def main() -> None:
                 st.session_state.pop("recovery_user", None)
                 
                 # Provide button to go to login
+                st.info("Click the button below to go to the sign-in page.")
                 if st.button("→ Go to Sign In", use_container_width=True, type="primary"):
                     st.switch_page("frontend/app.py")
-                
-                # Auto-redirect after a few seconds
-                st.info("You will be redirected to the sign-in page in a moment...")
-                import time
-                time.sleep(3)
-                st.switch_page("frontend/app.py")
             else:
                 st.error(
                     f"❌ **Failed to update password.**\n\n{result['error']}\n\n"
