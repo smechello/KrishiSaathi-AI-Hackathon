@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### 🔧 Fixed
+
+**Password Reset Flow**
+- Added dedicated password reset page (`frontend/pages/Reset_Password.py`)
+- Added `verify_recovery_token()` method to SupabaseManager for handling password reset tokens from email links
+- Added `update_password()` method to SupabaseManager for updating user passwords
+- Password reset emails now properly redirect to a dedicated reset page where users can set a new password
+- Improved user experience with clear success/error messaging and automatic redirect after password update
+- Updated documentation with password reset configuration instructions
+
+---
+
 ## [1.0.0] — 2026-02-07
 
 ### 🎉 Initial Release — AWS AI for Bharat Hackathon 2026
