@@ -291,6 +291,28 @@ In the Supabase Dashboard → **Authentication → Providers → Email**:
 
 > For production, enable email confirmation and add rate limiting.
 
+### 5.1 Password Reset Configuration
+
+To enable password reset functionality, configure the redirect URLs in Supabase:
+
+1. Go to **Authentication → URL Configuration** in Supabase Dashboard
+2. Add your app URL to **Redirect URLs** (e.g., `https://krishisaathi-ai-hackathon.streamlit.app/`)
+3. For local development, also add `http://localhost:8501/`
+
+When users click the password reset link in their email, they will be redirected to the **Reset_Password** page with recovery tokens in the URL. The page will:
+- Verify the recovery tokens
+- Allow the user to set a new password
+- Redirect them back to the sign-in page
+
+**Email Template Variables Available:**
+- `{{ .ConfirmationURL }}` - Full reset URL with tokens
+- `{{ .Token }}` - Access token
+- `{{ .TokenHash }}` - Token hash
+- `{{ .SiteURL }}` - Your configured site URL
+- `{{ .Email }}` - User's email address
+
+The default email template in Supabase is already configured correctly. The recovery tokens (`access_token`, `refresh_token`, and `type=recovery`) are automatically appended to the redirect URL.
+
 ---
 
 ## 6. Verify Setup

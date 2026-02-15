@@ -303,7 +303,10 @@ A: Yes. The interface is responsive and works on phones, tablets, and computers.
 ### Account
 
 **Q: I forgot my password. How do I reset it?**
-A: Click **"Forgot Password?"** on the login page and enter your email. You'll receive a reset link.
+A: Click the **"Reset Password"** tab on the login page, enter your email address, and click **"Send Reset Link"**. You'll receive an email with a password reset link. Click the link, and you'll be taken to a secure page where you can set a new password. After successfully updating your password, you can sign in with your new credentials.
+
+**Q: The password reset link isn't working. What should I do?**
+A: Password reset links expire after a certain time. If your link has expired or isn't working, request a new password reset link from the login page. Make sure to click the link soon after receiving the email.
 
 **Q: Can I change my language preference?**
 A: Yes. Use the language dropdown in the sidebar (left panel).
