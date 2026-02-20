@@ -53,7 +53,7 @@ class EmailService:
     ) -> bool:
         """Send an email-verification link."""
         verify_url = f"{Config.APP_URL}?verify_token={token}"
-        subject = "Verify your KrishiSaathi account"
+        subject = "Welcome to KrishiSaathi — confirm your email"
         html = _verification_template(full_name or "Farmer", verify_url)
         return cls._send(to_email, subject, html)
 
@@ -70,7 +70,7 @@ class EmailService:
     @classmethod
     def send_welcome_email(cls, to_email: str, full_name: str) -> bool:
         """Send a welcome email after successful verification."""
-        subject = "Welcome to KrishiSaathi! 🌾"
+        subject = "Your KrishiSaathi account is ready"
         html = _welcome_template(full_name or "Farmer")
         return cls._send(to_email, subject, html)
 
@@ -120,11 +120,11 @@ _BASE_STYLE = """
     .btn { display:inline-block; padding:14px 36px; background:#2E7D32; color:#ffffff !important;
            text-decoration:none; border-radius:10px; font-weight:700; font-size:15px;
            margin:20px 0; }
-    .btn:hover { background:#1B5E20; }
-    .footer { padding:20px 28px; background:#f9faf9; text-align:center;
-              font-size:12px; color:#888; border-top:1px solid #eee; }
-    .note { background:#FFF8E1; border-left:4px solid #FF8F00; padding:12px 16px;
-            border-radius:0 8px 8px 0; margin:16px 0; font-size:13px; color:#5D4037; }
+  .footer { padding:16px 28px; background:#f9faf9; text-align:left;
+        font-size:12px; color:#7a7a7a; border-top:1px solid #eee; }
+  .note { background:#f6f8f7; border-left:4px solid #2E7D32; padding:12px 16px;
+      border-radius:0 8px 8px 0; margin:16px 0; font-size:13px; color:#2b2b2b; }
+  .muted { color:#666; font-size:13px; }
 """
 
 
@@ -133,27 +133,33 @@ def _verification_template(name: str, url: str) -> str:
 <body>
 <div class="container">
   <div class="header">
-    <h1>🌾 KrishiSaathi</h1>
+    <h1>KrishiSaathi</h1>
     <p>AI Agricultural Advisory System</p>
   </div>
   <div class="body">
-    <h2>Verify your email, {name}!</h2>
-    <p>Thank you for creating a KrishiSaathi account. Please click the button
-       below to verify your email address and activate your account.</p>
-    <div style="text-align:center">
-      <a href="{url}" class="btn">✅ Verify My Email</a>
+    <h2>Welcome to KrishiSaathi</h2>
+    <p>Dear {name},</p>
+    <p>
+      Thank you for joining <strong>KrishiSaathi</strong> — your trusted companion for real-time mandi prices,
+      crop insights, and agricultural intelligence.
+    </p>
+    <p>Please confirm your email address to activate your account.</p>
+    <div style="text-align:center; margin: 20px 0;">
+      <a href="{url}" class="btn" style="background-color:#2E7D32;">Confirm My Email</a>
     </div>
     <div class="note">
-      ⏰ This link expires in <strong>24 hours</strong>. If you didn't create
-      an account, you can safely ignore this email.
+      This link expires in <strong>24 hours</strong>. If you did not create this account,
+      you can safely ignore this email.
     </div>
-    <p style="font-size:13px;color:#666;">If the button doesn't work, copy and
-       paste this link in your browser:<br>
-       <a href="{url}" style="color:#2E7D32;word-break:break-all">{url}</a></p>
+    <p class="muted">
+      If the button doesn't work, copy and paste this link in your browser:<br>
+      <a href="{url}" style="color:#2E7D32;word-break:break-all">{url}</a>
+    </p>
+    <p>Happy Farming,<br><strong>Team KrishiSaathi</strong></p>
   </div>
   <div class="footer">
-    Built with ❤️ for Indian Farmers · © 2026 KrishiSaathi<br>
-    AI-Powered Multi-Agent Agricultural Intelligence
+    <div><strong>KrishiSaathi</strong> — Empowering Farmers with Real-Time Market Intelligence.</div>
+    <div>This is an automated message. Please do not reply directly to this email.</div>
   </div>
 </div>
 </body></html>"""
@@ -164,27 +170,29 @@ def _password_reset_template(name: str, url: str) -> str:
 <body>
 <div class="container">
   <div class="header">
-    <h1>🌾 KrishiSaathi</h1>
+    <h1>KrishiSaathi</h1>
     <p>AI Agricultural Advisory System</p>
   </div>
   <div class="body">
-    <h2>Reset your password, {name}</h2>
-    <p>We received a request to reset your KrishiSaathi password.
-       Click the button below to choose a new password.</p>
-    <div style="text-align:center">
-      <a href="{url}" class="btn">🔑 Reset Password</a>
+    <h2>Reset Your KrishiSaathi Password</h2>
+    <p>Hello {name},</p>
+    <p>We received a request to reset the password for your <strong>KrishiSaathi</strong> account.</p>
+    <div style="text-align:center; margin: 20px 0;">
+      <a href="{url}" class="btn" style="background-color:#C62828;">Reset Password</a>
     </div>
-    <div class="note">
-      ⏰ This link expires in <strong>1 hour</strong>. If you didn't request
-      this, you can safely ignore this email — your password won't change.
+    <div class="note" style="border-left-color:#C62828;">
+      This link expires in <strong>1 hour</strong>. If you did not request a password reset,
+      please ignore this email — your account remains secure.
     </div>
-    <p style="font-size:13px;color:#666;">If the button doesn't work, copy and
-       paste this link in your browser:<br>
-       <a href="{url}" style="color:#2E7D32;word-break:break-all">{url}</a></p>
+    <p class="muted">
+      If the button doesn't work, copy and paste this link in your browser:<br>
+      <a href="{url}" style="color:#2E7D32;word-break:break-all">{url}</a>
+    </p>
+    <p>Stay Secure,<br><strong>Team KrishiSaathi</strong></p>
   </div>
   <div class="footer">
-    Built with ❤️ for Indian Farmers · © 2026 KrishiSaathi<br>
-    AI-Powered Multi-Agent Agricultural Intelligence
+    <div><strong>KrishiSaathi</strong> — Empowering Farmers with Real-Time Market Intelligence.</div>
+    <div>This is an automated message. Please do not reply directly to this email.</div>
   </div>
 </div>
 </body></html>"""
@@ -195,28 +203,27 @@ def _welcome_template(name: str) -> str:
 <body>
 <div class="container">
   <div class="header">
-    <h1>🌾 KrishiSaathi</h1>
+    <h1>KrishiSaathi</h1>
     <p>AI Agricultural Advisory System</p>
   </div>
   <div class="body">
-    <h2>Welcome aboard, {name}! 🎉</h2>
-    <p>Your email is verified and your account is ready. KrishiSaathi puts a
-       team of 5 AI farming experts in your pocket — completely free.</p>
-    <p><strong>What you can do:</strong></p>
-    <ul style="padding-left:20px;">
-      <li>🌱 <strong>Crop Doctor</strong> — Upload photos for instant disease diagnosis</li>
-      <li>💰 <strong>Market Prices</strong> — Check real-time mandi prices</li>
-      <li>🏛️ <strong>Government Schemes</strong> — Find schemes you're eligible for</li>
-      <li>🌤️ <strong>Weather</strong> — Get location-based forecasts</li>
-      <li>🧪 <strong>Soil Expert</strong> — Get fertiliser recommendations</li>
-    </ul>
-    <div style="text-align:center">
-      <a href="{Config.APP_URL}" class="btn">🚀 Start Using KrishiSaathi</a>
+    <h2>Your account is ready</h2>
+    <p>Dear {name},</p>
+    <p>
+      Your email has been verified successfully, and your <strong>KrishiSaathi</strong> account is now active.
+      You can sign in any time to explore mandi prices, crop guidance, schemes, and weather updates.
+    </p>
+    <div style="text-align:center; margin: 20px 0;">
+      <a href="{Config.APP_URL}" class="btn" style="background-color:#2E7D32;">Open KrishiSaathi</a>
     </div>
+    <div class="note">
+      Security tip: KrishiSaathi will never ask you for your password by email.
+    </div>
+    <p>Regards,<br><strong>Team KrishiSaathi</strong></p>
   </div>
   <div class="footer">
-    Built with ❤️ for Indian Farmers · © 2026 KrishiSaathi<br>
-    AI-Powered Multi-Agent Agricultural Intelligence
+    <div><strong>KrishiSaathi</strong> — Empowering Farmers with Real-Time Market Intelligence.</div>
+    <div>This is an automated message. Please do not reply directly to this email.</div>
   </div>
 </div>
 </body></html>"""
