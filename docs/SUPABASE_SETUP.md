@@ -405,3 +405,4 @@ You should see the login page. Create an account and start chatting!
 | "Please verify your email" after sign-up | Check your inbox (and spam) for the verification link |
 | Verification email not arriving | Verify `EMAIL_ADDRESS` and `EMAIL_PASSWORD` are correct Gmail App Password credentials |
 | "SUPABASE_SERVICE_KEY not configured" | Add the service_role key to `.env` / Streamlit secrets |
+| Still receiving Supabase `/auth/v1/verify?...` emails | Your deployment is not using the custom SMTP path. Ensure Streamlit secrets include `EMAIL_ADDRESS`, `EMAIL_PASSWORD`, and `SUPABASE_SERVICE_KEY`, then redeploy/restart the app. Also disable Supabase **Confirm email** setting. |

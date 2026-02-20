@@ -110,24 +110,26 @@ class SupabaseManager:
         {"success": False, "error": str}
         """
         try:
-            client = cls._new_client()
-            res = client.auth.sign_up(
-                {
-                    "email": email,
-                    "password": password,
-                    "options": {"data": {"full_name": full_name}},
-                }
-            )
-            user = res.user
-            session = res.session
-            user_dict = _user_dict(user)
-
             # ── Custom-email verification flow ────────────────────
             from backend.services.email_service import EmailService
 
             if EmailService.is_configured() and getattr(Config, "SUPABASE_SERVICE_KEY", None):
                 try:
                     svc = cls._service_client()
+
+                    # Create user via Admin API so Supabase does NOT send
+                    # built-in confirmation emails.
+                    admin_res = svc.auth.admin.create_user(
+                        {
+                            "email": email,
+                            "password": password,
+                            "email_confirm": True,
+                            "user_metadata": {"full_name": full_name},
+                        }
+                    )
+                    user = admin_res.user
+                    user_dict = _user_dict(user)
+
                     svc.table("profiles").upsert(
                         {
                             "id": str(user.id),
@@ -155,6 +157,18 @@ class SupabaseManager:
                         "falling back: %s", exc,
                     )
                     # Fall through to default behaviour
+
+            client = cls._new_client()
+            res = client.auth.sign_up(
+                {
+                    "email": email,
+                    "password": password,
+                    "options": {"data": {"full_name": full_name}},
+                }
+            )
+            user = res.user
+            session = res.session
+            user_dict = _user_dict(user)
 
             # ── Default flow (no custom email) ────────────────────
             if session:
