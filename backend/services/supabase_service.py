@@ -286,6 +286,19 @@ class SupabaseManager:
                     "error": "Unable to send reset email. Please try again.",
                 }
 
+        # If the app is configured for server-side admin operations but the
+        # SMTP credentials are missing, do NOT silently fall back to Supabase
+        # emails (that reintroduces Supabase /auth/v1/verify links).
+        if getattr(Config, "SUPABASE_SERVICE_KEY", None) and not EmailService.is_configured():
+            return {
+                "success": False,
+                "error": (
+                    "Email service is not configured. Please set EMAIL_ADDRESS "
+                    "and EMAIL_PASSWORD (Gmail App Password) in Streamlit secrets "
+                    "and reboot the app."
+                ),
+            }
+
         # ── Fallback: Supabase built-in ───────────────────────────
         try:
             client = cls._new_client()
