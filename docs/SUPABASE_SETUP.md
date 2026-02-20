@@ -285,11 +285,13 @@ In the Supabase Dashboard → **Authentication → Providers → Email**:
 
 | Setting | Recommended Value | Why |
 |---|---|---|
-| **Confirm email** | ❌ Disabled (for hackathon) | Users can log in immediately after sign-up |
+| **Confirm email** | ❌ Disabled | KrishiSaathi uses its own email service for verification |
 | **Secure email change** | ✅ Enabled | Standard security |
 | **Minimum password length** | 6 | Default |
 
-> For production, enable email confirmation and add rate limiting.
+> **Important:** If you are using the custom email service (Gmail SMTP),
+> you must **disable** Supabase's built-in email confirmation so that
+> users are created immediately and our own verification flow takes over.
 
 ### 5.1 Password Reset Configuration
 
@@ -315,11 +317,92 @@ The default email template in Supabase is already configured correctly. The reco
 
 ---
 
-## 6. Verify Setup
+## 6. Custom Email Service — Additional Tables
+
+If you enable the custom Gmail SMTP email service (by setting
+`EMAIL_ADDRESS`, `EMAIL_PASSWORD`, and `SUPABASE_SERVICE_KEY`), you need
+these extra database objects.
+
+### 6.1 Add columns to `profiles`
+
+```sql
+-- Email address + verification flag
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
+
+-- Grandfather existing users as verified
+UPDATE public.profiles SET email_verified = true;
+```
+
+### 6.2 Email verification tokens
+
+```sql
+CREATE TABLE IF NOT EXISTS public.email_verifications (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    email       TEXT NOT NULL,
+    token       TEXT NOT NULL UNIQUE,
+    expires_at  TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '24 hours'),
+    created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.email_verifications ENABLE ROW LEVEL SECURITY;
+
+-- Tokens are UUID-based and unguessable; permissive policies are safe
+CREATE POLICY "email_verifications_select"
+    ON public.email_verifications FOR SELECT USING (true);
+CREATE POLICY "email_verifications_insert"
+    ON public.email_verifications FOR INSERT WITH CHECK (true);
+CREATE POLICY "email_verifications_delete"
+    ON public.email_verifications FOR DELETE USING (true);
+```
+
+### 6.3 Password reset tokens
+
+```sql
+CREATE TABLE IF NOT EXISTS public.password_resets (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    email       TEXT NOT NULL,
+    token       TEXT NOT NULL UNIQUE,
+    expires_at  TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '1 hour'),
+    used        BOOLEAN DEFAULT false,
+    created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.password_resets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "password_resets_select"
+    ON public.password_resets FOR SELECT USING (true);
+CREATE POLICY "password_resets_insert"
+    ON public.password_resets FOR INSERT WITH CHECK (true);
+CREATE POLICY "password_resets_update"
+    ON public.password_resets FOR UPDATE USING (true);
+```
+
+### 6.4 Environment variables
+
+Add these to your `.env` file (local) or Streamlit Cloud secrets:
+
+| Variable | Description |
+|---|---|
+| `EMAIL_ADDRESS` | Gmail address (e.g. `krishisaathi@gmail.com`) |
+| `EMAIL_PASSWORD` | **Gmail App Password** — *not* your regular password. Generate one at [Google App Passwords](https://myaccount.google.com/apppasswords) |
+| `SUPABASE_SERVICE_KEY` | The **service_role** key from Supabase Dashboard → Settings → API. Used for admin operations (password updates, profile verification) |
+| `APP_URL` | Your deployed app URL (defaults to `https://krishisaathi-ai-hackathon.streamlit.app`) |
+
+> **Security note:** The `SUPABASE_SERVICE_KEY` bypasses Row Level Security.
+> It is safe because Streamlit runs entirely server-side — the key is never
+> exposed to the browser. Never use it in a client-side app.
+
+---
+
+## 7. Verify Setup
 
 After running the SQL, check:
 
-1. **Tables** → `profiles`, `chat_history`, `memories`, and `admin_settings` appear under *Table Editor*
+1. **Tables** → `profiles`, `chat_history`, `memories`, `admin_settings`, `email_verifications`, and `password_resets` appear under *Table Editor*
 2. **Policies** → Each table shows its RLS policies under *Authentication → Policies*
 3. **Trigger** → `on_auth_user_created` appears under *Database → Triggers*
 
@@ -341,3 +424,7 @@ You should see the login page. Create an account and start chatting!
 | "new row violates RLS policy" | Check that RLS policies were created |
 | Can't sign in after sign-up | Disable "Confirm email" in Auth settings |
 | "Invalid API key" | Check `SUPABASE_KEY` is the **anon/public** key (not service_role) |
+| "Please verify your email" after sign-up | Check your inbox (and spam) for the verification link |
+| Verification email not arriving | Verify `EMAIL_ADDRESS` and `EMAIL_PASSWORD` are correct Gmail App Password credentials |
+| "SUPABASE_SERVICE_KEY not configured" | Add the service_role key to `.env` / Streamlit secrets |
+| Still receiving Supabase `/auth/v1/verify?...` emails | Your deployment is not using the custom SMTP path. Ensure Streamlit secrets include `EMAIL_ADDRESS`, `EMAIL_PASSWORD`, and `SUPABASE_SERVICE_KEY`, then redeploy/restart the app. Also disable Supabase **Confirm email** setting. |

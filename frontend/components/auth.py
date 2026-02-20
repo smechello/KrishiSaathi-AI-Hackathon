@@ -82,6 +82,9 @@ def render_auth_page() -> None:
 
     Injects its own CSS and the global theme CSS so it looks correct
     even when the sidebar hasn't been rendered yet.
+
+    Also handles email-verification and password-reset links that
+    arrive via ``st.query_params``.
     """
     theme = get_theme()
     pal   = get_palette(theme)
@@ -89,6 +92,15 @@ def render_auth_page() -> None:
     # Global theme + auth-specific CSS
     inject_global_css(theme)
     _inject_auth_css(pal, theme)
+
+    # ── Handle verification / reset links from email ───────────────
+    params = st.query_params
+    if "verify_token" in params:
+        _handle_email_verification(params["verify_token"], pal)
+        return
+    if "reset_token" in params:
+        _handle_password_reset(params["reset_token"], pal)
+        return
 
     # ── Centered column ────────────────────────────────────────────
     _spacer, col, _spacer2 = st.columns([1, 2, 1])
@@ -165,6 +177,19 @@ def _render_login_form(pal: dict) -> None:
         else:
             st.error(result["error"])
 
+    # ── Resend verification button (when email-not-verified error) ──
+    resend_email = st.session_state.get("needs_verification")
+    if resend_email:
+        st.info("📧 Your email is not verified yet.")
+        if st.button("Resend Verification Email", key="resend_verify_btn"):
+            with st.spinner("Sending …"):
+                res = SupabaseManager.resend_verification(resend_email)
+            if res.get("success"):
+                st.success("Verification email sent! Check your inbox.")
+            else:
+                st.error("Could not send email. Please try again later.")
+            st.session_state.pop("needs_verification", None)
+
 
 def _render_signup_form(pal: dict) -> None:
     st.markdown(
@@ -201,8 +226,9 @@ def _render_signup_form(pal: dict) -> None:
         if result["success"]:
             if result.get("needs_confirm"):
                 st.success(
-                    "✅ Account created! Check your email for a confirmation link, "
-                    "then come back and sign in."
+                    "✅ Account created! We've sent a verification link "
+                    "to your email. Please check your inbox (and spam folder), "
+                    "click the link to verify, then come back and sign in."
                 )
             else:
                 st.success("✅ Account created — you're signed in!")
@@ -238,6 +264,101 @@ def _render_reset_form(pal: dict) -> None:
             )
         else:
             st.error(result["error"])
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Email verification / password-reset link handlers
+# ═══════════════════════════════════════════════════════════════════════
+
+def _handle_email_verification(token: str, pal: dict) -> None:
+    """Process an email-verification link (``?verify_token=…``)."""
+    _spacer, col, _spacer2 = st.columns([1, 2, 1])
+    with col:
+        st.markdown(
+            '<div class="ks-auth-header">'
+            '  <h1>Email Verification</h1>'
+            '  <p>KrishiSaathi — AI Agricultural Advisory</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        with st.spinner("Verifying your email …"):
+            result = SupabaseManager.verify_email_token(token)
+
+        if result.get("success"):
+            st.success(
+                "✅ Your email has been verified successfully! "
+                "You can now sign in to your account."
+            )
+        else:
+            st.error(result.get("error", "Verification failed."))
+
+        if st.button("Go to Sign In", type="primary", use_container_width=True):
+            st.query_params.clear()
+            st.rerun()
+
+
+def _handle_password_reset(token: str, pal: dict) -> None:
+    """Process a password-reset link (``?reset_token=…``)."""
+    _spacer, col, _spacer2 = st.columns([1, 2, 1])
+    with col:
+        st.markdown(
+            '<div class="ks-auth-header">'
+            '  <h1>Reset Password</h1>'
+            '  <p>KrishiSaathi — AI Agricultural Advisory</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Check token validity first
+        check = SupabaseManager.check_reset_token(token)
+        if not check.get("valid"):
+            st.error(
+                "This password-reset link is invalid or has expired. "
+                "Please request a new one."
+            )
+            if st.button("Go to Sign In", type="primary", use_container_width=True):
+                st.query_params.clear()
+                st.rerun()
+            return
+
+        st.info(f"Resetting password for **{check.get('email', '')}**")
+
+        with st.form("ks_reset_password_form", clear_on_submit=True):
+            new_password  = st.text_input(
+                "New password", type="password",
+                placeholder="Minimum 6 characters",
+            )
+            confirm_password = st.text_input(
+                "Confirm new password", type="password",
+                placeholder="Re-enter password",
+            )
+            submitted = st.form_submit_button(
+                "Reset Password", use_container_width=True, type="primary",
+            )
+
+        if submitted:
+            if not new_password or not confirm_password:
+                st.error("Please fill in both fields.")
+                return
+            if new_password != confirm_password:
+                st.error("Passwords do not match.")
+                return
+            if len(new_password) < 6:
+                st.error("Password must be at least 6 characters.")
+                return
+
+            with st.spinner("Resetting password …"):
+                result = SupabaseManager.complete_password_reset(token, new_password)
+
+            if result.get("success"):
+                st.success(
+                    "✅ Password reset successfully! You can now sign in "
+                    "with your new password."
+                )
+                st.query_params.clear()
+            else:
+                st.error(result.get("error", "Password reset failed."))
 
 
 # ═══════════════════════════════════════════════════════════════════════

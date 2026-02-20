@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 import streamlit as st
@@ -62,6 +64,18 @@ class SupabaseManager:
         return create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
     @classmethod
+    def _service_client(cls) -> "Client":
+        """Client with the **service-role key** — bypasses RLS.
+
+        Used for server-side operations (verification tokens, password
+        reset, etc.).  Raises ``RuntimeError`` when the key is not set.
+        """
+        key = getattr(Config, "SUPABASE_SERVICE_KEY", None)
+        if not key:
+            raise RuntimeError("SUPABASE_SERVICE_KEY not configured")
+        return create_client(Config.SUPABASE_URL, key)
+
+    @classmethod
     def _authed_client(cls) -> "Client":
         """Client with the current user's JWT set so that RLS applies."""
         client = cls._new_client()
@@ -85,12 +99,65 @@ class SupabaseManager:
     ) -> dict[str, Any]:
         """Register a new user.
 
+        When the custom email service is active (EMAIL_ADDRESS +
+        SUPABASE_SERVICE_KEY configured), we send our own verification
+        email and do NOT store the Supabase session until the user
+        verifies.
+
         Returns
         -------
         {"success": True, "user": dict, "needs_confirm": bool}
         {"success": False, "error": str}
         """
         try:
+            # ── Custom-email verification flow ────────────────────
+            from backend.services.email_service import EmailService
+
+            if EmailService.is_configured() and getattr(Config, "SUPABASE_SERVICE_KEY", None):
+                try:
+                    svc = cls._service_client()
+
+                    # Create user via Admin API so Supabase does NOT send
+                    # built-in confirmation emails.
+                    admin_res = svc.auth.admin.create_user(
+                        {
+                            "email": email,
+                            "password": password,
+                            "email_confirm": True,
+                            "user_metadata": {"full_name": full_name},
+                        }
+                    )
+                    user = admin_res.user
+                    user_dict = _user_dict(user)
+
+                    svc.table("profiles").upsert(
+                        {
+                            "id": str(user.id),
+                            "full_name": full_name,
+                            "email": email.lower().strip(),
+                            "email_verified": False,
+                        },
+                        on_conflict="id",
+                    ).execute()
+
+                    token = cls.create_email_verification(str(user.id), email)
+                    if token:
+                        EmailService.send_verification_email(
+                            email, full_name, token
+                        )
+                    # Do NOT store session — user must verify first
+                    return {
+                        "success": True,
+                        "user": user_dict,
+                        "needs_confirm": True,
+                    }
+                except Exception as exc:
+                    logger.warning(
+                        "Custom email verification setup failed, "
+                        "falling back: %s", exc,
+                    )
+                    # Fall through to default behaviour
+
             client = cls._new_client()
             res = client.auth.sign_up(
                 {
@@ -101,19 +168,19 @@ class SupabaseManager:
             )
             user = res.user
             session = res.session
+            user_dict = _user_dict(user)
 
+            # ── Default flow (no custom email) ────────────────────
             if session:
-                # email-confirmation disabled → logged in immediately
                 _store_session(session, user)
                 return {
                     "success": True,
-                    "user": _user_dict(user),
+                    "user": user_dict,
                     "needs_confirm": False,
                 }
-            # email-confirmation enabled
             return {
                 "success": True,
-                "user": _user_dict(user),
+                "user": user_dict,
                 "needs_confirm": True,
             }
         except Exception as exc:
@@ -124,6 +191,9 @@ class SupabaseManager:
     def sign_in(cls, email: str, password: str) -> dict[str, Any]:
         """Sign in with email + password.
 
+        When the custom email service is active, this also checks
+        ``profiles.email_verified`` and rejects unverified accounts.
+
         Returns ``{"success": True, "user": dict}``
         or ``{"success": False, "error": str}``.
         """
@@ -132,6 +202,44 @@ class SupabaseManager:
             res = client.auth.sign_in_with_password(
                 {"email": email, "password": password}
             )
+
+            # ── Block unverified accounts (custom email flow) ─────
+            from backend.services.email_service import EmailService
+
+            if EmailService.is_configured() and getattr(Config, "SUPABASE_SERVICE_KEY", None):
+                try:
+                    client.auth.set_session(
+                        res.session.access_token, res.session.refresh_token
+                    )
+                    profile = (
+                        client.table("profiles")
+                        .select("email_verified")
+                        .eq("id", str(res.user.id))
+                        .maybe_single()
+                        .execute()
+                    )
+                    if (
+                        profile.data
+                        and profile.data.get("email_verified") is False
+                    ):
+                        try:
+                            client.auth.sign_out()
+                        except Exception:
+                            pass
+                        st.session_state["needs_verification"] = email
+                        return {
+                            "success": False,
+                            "error": (
+                                "Please verify your email before signing in. "
+                                "Check your inbox for the verification link."
+                            ),
+                        }
+                except Exception as exc:
+                    logger.warning(
+                        "email_verified check failed (allowing login): %s",
+                        exc,
+                    )
+
             _store_session(res.session, res.user)
             return {"success": True, "user": _user_dict(res.user)}
         except Exception as exc:
@@ -155,7 +263,43 @@ class SupabaseManager:
 
     @classmethod
     def reset_password(cls, email: str) -> dict[str, Any]:
-        """Send a password-reset email."""
+        """Send a password-reset email.
+
+        Uses the custom email service when configured; otherwise falls
+        back to Supabase's built-in reset email.
+        """
+        from backend.services.email_service import EmailService
+
+        if EmailService.is_configured() and getattr(Config, "SUPABASE_SERVICE_KEY", None):
+            try:
+                result = cls.create_password_reset(email)
+                if result.get("token"):
+                    EmailService.send_password_reset_email(
+                        email, result.get("full_name", ""), result["token"]
+                    )
+                # Always return success (don't reveal if email exists)
+                return {"success": True}
+            except Exception as exc:
+                logger.warning("Custom password reset failed: %s", exc)
+                return {
+                    "success": False,
+                    "error": "Unable to send reset email. Please try again.",
+                }
+
+        # If the app is configured for server-side admin operations but the
+        # SMTP credentials are missing, do NOT silently fall back to Supabase
+        # emails (that reintroduces Supabase /auth/v1/verify links).
+        if getattr(Config, "SUPABASE_SERVICE_KEY", None) and not EmailService.is_configured():
+            return {
+                "success": False,
+                "error": (
+                    "Email service is not configured. Please set EMAIL_ADDRESS "
+                    "and EMAIL_PASSWORD (Gmail App Password) in Streamlit secrets "
+                    "and reboot the app."
+                ),
+            }
+
+        # ── Fallback: Supabase built-in ───────────────────────────
         try:
             client = cls._new_client()
             client.auth.reset_password_for_email(email)
@@ -223,6 +367,253 @@ class SupabaseManager:
             logger.warning("Session restore failed: %s", exc)
             _clear_session()
         return None
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  Email verification & password reset (custom email flow)
+    # ═══════════════════════════════════════════════════════════════════
+
+    @classmethod
+    def create_email_verification(
+        cls, user_id: str, email: str
+    ) -> str | None:
+        """Create a verification token and store it.
+
+        Returns the UUID token string, or ``None`` on failure.
+        """
+        try:
+            token = str(uuid.uuid4())
+            svc = cls._service_client()
+            svc.table("email_verifications").insert(
+                {"user_id": user_id, "email": email.lower().strip(), "token": token}
+            ).execute()
+            return token
+        except Exception as exc:
+            logger.warning("create_email_verification failed: %s", exc)
+            return None
+
+    @classmethod
+    def verify_email_token(cls, token: str) -> dict[str, Any]:
+        """Verify a token, mark the profile as verified.
+
+        Returns ``{"success": True}`` or ``{"success": False, "error": …}``.
+        """
+        try:
+            client = cls._new_client()
+            res = (
+                client.table("email_verifications")
+                .select("*")
+                .eq("token", token)
+                .maybe_single()
+                .execute()
+            )
+            if not res.data:
+                return {"success": False, "error": "Invalid verification link."}
+
+            expires_at = datetime.fromisoformat(
+                res.data["expires_at"].replace("Z", "+00:00")
+            )
+            if datetime.now(timezone.utc) > expires_at:
+                return {
+                    "success": False,
+                    "error": "Verification link has expired. Please sign up again.",
+                }
+
+            user_id = res.data["user_id"]
+
+            # Mark profile verified + send welcome email
+            svc = cls._service_client()
+            svc.table("profiles").update(
+                {"email_verified": True}
+            ).eq("id", user_id).execute()
+
+            # Delete used token
+            svc.table("email_verifications").delete().eq(
+                "token", token
+            ).execute()
+
+            # Send welcome email (best-effort)
+            try:
+                from backend.services.email_service import EmailService
+
+                profile = (
+                    svc.table("profiles")
+                    .select("full_name, email")
+                    .eq("id", user_id)
+                    .maybe_single()
+                    .execute()
+                )
+                if profile.data:
+                    EmailService.send_welcome_email(
+                        profile.data.get("email", res.data["email"]),
+                        profile.data.get("full_name", ""),
+                    )
+            except Exception:
+                pass
+
+            return {"success": True}
+        except Exception as exc:
+            logger.warning("verify_email_token failed: %s", exc)
+            return {
+                "success": False,
+                "error": "Verification failed. Please try again.",
+            }
+
+    @classmethod
+    def create_password_reset(cls, email: str) -> dict[str, Any]:
+        """Create a password-reset token for *email*.
+
+        Returns ``{"success": True, "token": str, "full_name": str}``
+        or ``{"success": True, "token": None}`` if the email isn't found
+        (silent — don't reveal whether the email exists).
+        """
+        try:
+            svc = cls._service_client()
+            res = (
+                svc.table("profiles")
+                .select("id, full_name")
+                .eq("email", email.lower().strip())
+                .maybe_single()
+                .execute()
+            )
+            if not res.data:
+                return {"success": True, "token": None}
+
+            token = str(uuid.uuid4())
+            user_id = res.data["id"]
+            full_name = res.data.get("full_name", "")
+
+            svc.table("password_resets").insert(
+                {
+                    "user_id": user_id,
+                    "email": email.lower().strip(),
+                    "token": token,
+                }
+            ).execute()
+
+            return {"success": True, "token": token, "full_name": full_name}
+        except Exception as exc:
+            logger.warning("create_password_reset failed: %s", exc)
+            return {"success": False, "error": str(exc)}
+
+    @classmethod
+    def check_reset_token(cls, token: str) -> dict[str, Any]:
+        """Validate a reset token without consuming it.
+
+        Returns ``{"valid": True, "email": str}`` or ``{"valid": False}``.
+        """
+        try:
+            client = cls._new_client()
+            res = (
+                client.table("password_resets")
+                .select("email, expires_at, used")
+                .eq("token", token)
+                .maybe_single()
+                .execute()
+            )
+            if not res.data or res.data.get("used"):
+                return {"valid": False}
+
+            expires_at = datetime.fromisoformat(
+                res.data["expires_at"].replace("Z", "+00:00")
+            )
+            if datetime.now(timezone.utc) > expires_at:
+                return {"valid": False}
+
+            return {"valid": True, "email": res.data["email"]}
+        except Exception:
+            return {"valid": False}
+
+    @classmethod
+    def complete_password_reset(
+        cls, token: str, new_password: str
+    ) -> dict[str, Any]:
+        """Verify a reset token and update the user's password.
+
+        Returns ``{"success": True}`` or ``{"success": False, "error": …}``.
+        """
+        try:
+            svc = cls._service_client()
+            res = (
+                svc.table("password_resets")
+                .select("*")
+                .eq("token", token)
+                .eq("used", False)
+                .maybe_single()
+                .execute()
+            )
+            if not res.data:
+                return {
+                    "success": False,
+                    "error": "Invalid or already-used reset link.",
+                }
+
+            expires_at = datetime.fromisoformat(
+                res.data["expires_at"].replace("Z", "+00:00")
+            )
+            if datetime.now(timezone.utc) > expires_at:
+                return {
+                    "success": False,
+                    "error": "Reset link has expired. Please request a new one.",
+                }
+
+            user_id = res.data["user_id"]
+
+            # Update password via admin API
+            svc.auth.admin.update_user_by_id(
+                user_id, {"password": new_password}
+            )
+
+            # Mark token as used
+            svc.table("password_resets").update(
+                {"used": True}
+            ).eq("token", token).execute()
+
+            return {"success": True}
+        except Exception as exc:
+            logger.warning("complete_password_reset failed: %s", exc)
+            return {
+                "success": False,
+                "error": "Password reset failed. Please try again.",
+            }
+
+    @classmethod
+    def resend_verification(cls, email: str) -> dict[str, Any]:
+        """Re-send a verification email for an unverified account.
+
+        Deletes old tokens, creates a fresh one, and emails it.
+        Returns ``{"success": True}`` or ``{"success": False}``.
+        """
+        try:
+            svc = cls._service_client()
+            profile = (
+                svc.table("profiles")
+                .select("id, full_name")
+                .eq("email", email.lower().strip())
+                .maybe_single()
+                .execute()
+            )
+            if not profile.data:
+                return {"success": False}
+
+            user_id = profile.data["id"]
+            full_name = profile.data.get("full_name", "")
+
+            # Remove stale tokens
+            svc.table("email_verifications").delete().eq(
+                "user_id", user_id
+            ).execute()
+
+            # Create new token
+            token = cls.create_email_verification(user_id, email)
+            if token:
+                from backend.services.email_service import EmailService
+
+                EmailService.send_verification_email(email, full_name, token)
+                return {"success": True}
+            return {"success": False}
+        except Exception as exc:
+            logger.warning("resend_verification failed: %s", exc)
+            return {"success": False}
 
     # ═══════════════════════════════════════════════════════════════════
     #  Profile helpers (uses ``profiles`` table)
