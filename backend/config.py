@@ -20,12 +20,22 @@ class Config:
         OPENWEATHER_API_KEY: str | None = os.getenv("OPENWEATHER_API_KEY")
         SUPABASE_URL: str | None = os.getenv("SUPABASE_URL")
         SUPABASE_KEY: str | None = os.getenv("SUPABASE_KEY")
+        # ── Custom email service (Gmail SMTP) ──────────────────────
+        EMAIL_ADDRESS: str | None = os.getenv("EMAIL_ADDRESS")
+        EMAIL_PASSWORD: str | None = os.getenv("EMAIL_PASSWORD")
+        SUPABASE_SERVICE_KEY: str | None = os.getenv("SUPABASE_SERVICE_KEY")
+        APP_URL: str = os.getenv("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
     else:
         GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
         GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
         OPENWEATHER_API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
         SUPABASE_URL = st.secrets.get("SUPABASE_URL")
         SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")
+        # ── Custom email service (Gmail SMTP) ──────────────────────
+        EMAIL_ADDRESS = st.secrets.get("EMAIL_ADDRESS")
+        EMAIL_PASSWORD = st.secrets.get("EMAIL_PASSWORD")
+        SUPABASE_SERVICE_KEY = st.secrets.get("SUPABASE_SERVICE_KEY")
+        APP_URL = st.secrets.get("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
     
 
     # ── LLM Backend ────────────────────────────────────────────────────
