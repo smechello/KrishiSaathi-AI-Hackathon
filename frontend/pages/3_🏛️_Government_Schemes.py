@@ -426,6 +426,11 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
 
     st.markdown(f"#### {_ui(lang, 'tab_advisor')}")
 
+    # If a quick-question button was clicked, pre-fill the text area
+    _pending = st.session_state.pop("_pending_scheme_q", None)
+    if _pending:
+        st.session_state["scheme_advisor_query"] = _pending
+
     query = st.text_area(
         _ui(lang, "advisor_label"),
         placeholder=_ui(lang, "advisor_placeholder"),
@@ -505,7 +510,7 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
     for i, (col, q) in enumerate(zip(cols, qs)):
         with col:
             if st.button(q[:28] + "…" if len(q) > 28 else q, key=f"sq_{i}", use_container_width=True):
-                st.session_state["scheme_advisor_query"] = q
+                st.session_state["_pending_scheme_q"] = q
                 st.rerun()
 
 
