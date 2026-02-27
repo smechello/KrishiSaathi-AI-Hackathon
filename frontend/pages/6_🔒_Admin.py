@@ -88,11 +88,26 @@ def _clear_all_caches() -> None:
 #  Helpers
 # ═══════════════════════════════════════════════════════════════════════
 
-def _ago(iso_str: str | None) -> str:
-    if not iso_str:
+def _ts(val) -> str:
+    """Normalize a timestamp to an ISO-format string.
+
+    RDS (psycopg2) returns ``datetime`` objects; Supabase returns ISO strings.
+    """
+    if val is None:
+        return ""
+    if isinstance(val, datetime):
+        return val.isoformat()
+    return str(val)
+
+
+def _ago(raw_ts) -> str:
+    if not raw_ts:
         return "—"
     try:
-        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        if isinstance(raw_ts, datetime):
+            dt = raw_ts if raw_ts.tzinfo else raw_ts.replace(tzinfo=timezone.utc)
+        else:
+            dt = datetime.fromisoformat(str(raw_ts).replace("Z", "+00:00"))
         delta = datetime.now(timezone.utc) - dt
         if delta.days > 365:
             return f"{delta.days // 365}y ago"
@@ -106,16 +121,18 @@ def _ago(iso_str: str | None) -> str:
         m = delta.seconds // 60
         return f"{m}m ago" if m > 0 else "just now"
     except Exception:
-        return str(iso_str)[:10]
+        return str(raw_ts)[:10]
 
 
-def _date_str(iso_str: str | None) -> str:
-    if not iso_str:
+def _date_str(raw_ts) -> str:
+    if not raw_ts:
         return "—"
     try:
-        return datetime.fromisoformat(iso_str.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
+        if isinstance(raw_ts, datetime):
+            return raw_ts.strftime("%Y-%m-%d %H:%M")
+        return datetime.fromisoformat(str(raw_ts).replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
     except Exception:
-        return str(iso_str)[:16]
+        return str(raw_ts)[:16]
 
 
 def _build_msg_stats(msgs: list[dict]) -> tuple[Counter, Counter, Counter, dict]:
@@ -128,7 +145,7 @@ def _build_msg_stats(msgs: list[dict]) -> tuple[Counter, Counter, Counter, dict]
         uid = msg.get("user_id", "")
         user_msg_counts[uid] += 1
         roles[msg.get("role", "unknown")] += 1
-        ts = msg.get("created_at", "")
+        ts = _ts(msg.get("created_at", ""))
         if ts:
             daily[ts[:10]] += 1
             if uid not in last_active or ts > last_active[uid]:
@@ -214,7 +231,7 @@ def _render_overview() -> None:
     st.subheader("User Signups")
     signup: Counter = Counter()
     for u in users:
-        ca = u.get("created_at", "")
+        ca = _ts(u.get("created_at", ""))
         if ca:
             signup[ca[:10]] += 1
     if signup:
