@@ -172,6 +172,8 @@ class WeatherAgent:
 		crop_note = f" for {crop} crop" if crop else ""
 		prompt = (
 			f"You are a Weather & Crop Advisory Expert for KrishiSaathi, serving Telangana farmers.\n\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n"
+			"Translation to the farmer's language is handled separately by our system.\n\n"
 			f"Based on the weather data below, provide a practical advisory{crop_note}:\n"
 			"- Current conditions summary\n"
 			"- Spray/irrigation recommendation\n"

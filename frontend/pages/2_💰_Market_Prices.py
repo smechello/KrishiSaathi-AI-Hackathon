@@ -560,8 +560,11 @@ def _render_ai_advisor(
                 summary = result.get("summary", "")
                 sources = result.get("sources", [])
 
-                if lang != "en" and summary:
-                    summary = translator.from_english(summary, dest=lang)
+                # Ensure response is English, then translate to user language
+                if summary:
+                    summary = translator.ensure_english(summary)
+                    if lang != "en":
+                        summary = translator.from_english(summary, dest=lang)
 
                 st.subheader(f"📋 {_ui(lang, 'summary_header')}")
                 st.markdown(summary)

@@ -573,8 +573,11 @@ def _render_advisor(agent: SoilAgent, lang: str) -> None:
                 answer = result.get("answer", "")
                 sources = result.get("sources", [])
 
-                if lang != "en" and answer:
-                    answer = translator.from_english(answer, dest=lang)
+                # Ensure response is English, then translate to user language
+                if answer:
+                    answer = translator.ensure_english(answer)
+                    if lang != "en":
+                        answer = translator.from_english(answer, dest=lang)
 
                 st.subheader(f"🧪 {_ui(lang, 'summary_header')}")
                 st.markdown(answer)

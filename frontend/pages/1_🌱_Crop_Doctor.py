@@ -209,7 +209,9 @@ def main() -> None:
                     if crop_name:
                         ctx_parts.append(f"Crop: {crop_name}")
                     if extra_context:
-                        ctx_parts.append(extra_context)
+                        # Translate user context to English for the agent
+                        ctx_en = translator.to_english(extra_context, src=lang) if lang != "en" else extra_context
+                        ctx_parts.append(ctx_en)
                     ctx = ". ".join(ctx_parts) if ctx_parts else None
 
                     image = Image.open(uploaded)
@@ -224,9 +226,11 @@ def main() -> None:
                             diagnosis = result.get("diagnosis", "")
                             sources = result.get("sources", [])
 
-                            # Translate if needed
-                            if lang != "en" and diagnosis:
-                                diagnosis = translator.from_english(diagnosis, dest=lang)
+                            # Ensure response is English, then translate to user language
+                            if diagnosis:
+                                diagnosis = translator.ensure_english(diagnosis)
+                                if lang != "en":
+                                    diagnosis = translator.from_english(diagnosis, dest=lang)
 
                             st.subheader(f"📋 {_ui(lang, 'results')}")
                             st.markdown(diagnosis)
@@ -297,8 +301,11 @@ def main() -> None:
                             diagnosis = result.get("diagnosis", "")
                             sources = result.get("sources", [])
 
-                            if lang != "en" and diagnosis:
-                                diagnosis = translator.from_english(diagnosis, dest=lang)
+                            # Ensure response is English, then translate to user language
+                            if diagnosis:
+                                diagnosis = translator.ensure_english(diagnosis)
+                                if lang != "en":
+                                    diagnosis = translator.from_english(diagnosis, dest=lang)
 
                             st.subheader(f"📋 {_ui(lang, 'results')}")
                             st.markdown(diagnosis)

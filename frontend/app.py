@@ -226,9 +226,11 @@ def main() -> None:
                 response_text: str = result.get("response", "")
                 sources: list[str] = result.get("sources", [])
 
-                # Translate response back to user's language
-                if lang != "en" and response_text:
-                    response_text = translator.from_english(response_text, dest=lang)
+                # Ensure response is English, then translate to user language
+                if response_text:
+                    response_text = translator.ensure_english(response_text)
+                    if lang != "en":
+                        response_text = translator.from_english(response_text, dest=lang)
 
             except Exception as exc:
                 logger.error("Backend error: %s", exc, exc_info=True)

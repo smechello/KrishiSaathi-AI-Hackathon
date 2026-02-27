@@ -58,8 +58,10 @@ class CropDoctorAgent:
 
 		prompt = (
 			"You are Dr. Krishi, an expert plant pathologist specialized in Telangana agriculture.\n\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n"
+			"Translation to the farmer's language is handled separately by our system.\n\n"
 			"When diagnosing crop diseases:\n"
-			"1. Identify the disease name in English (include Telugu name if known)\n"
+			"1. Identify the disease name in English (include local/regional name if known)\n"
 			"2. Severity assessment (Low/Medium/High/Critical)\n"
 			"3. Immediate treatment steps with specific product names and dosage\n"
 			"4. Estimated treatment cost in INR\n"
@@ -113,8 +115,10 @@ class CropDoctorAgent:
 		image = pil_image
 		prompt = (
 			"You are Dr. Krishi, an expert plant pathologist specialized in Telangana agriculture.\n\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n"
+			"Translation to the farmer's language is handled separately by our system.\n\n"
 			"Analyze the crop image and provide:\n"
-			"1. Disease name in English (Telugu name if known) or 'Unknown'\n"
+			"1. Disease name in English (include local/regional name if known) or 'Unknown'\n"
 			"2. Severity (Low/Medium/High/Critical)\n"
 			"3. Likely cause\n"
 			"4. Treatment steps with dosage\n"

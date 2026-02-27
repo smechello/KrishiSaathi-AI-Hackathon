@@ -109,6 +109,8 @@ class SchemeAgent:
 
 		prompt = (
 			"You are a Telangana Government Scheme Expert for KrishiSaathi.\n\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n"
+			"Translation to the farmer's language is handled separately by our system.\n\n"
 			"Answer the farmer's question about government schemes clearly:\n"
 			"- Provide exact eligibility criteria\n"
 			"- List required documents\n"

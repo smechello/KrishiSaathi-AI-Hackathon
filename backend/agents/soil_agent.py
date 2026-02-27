@@ -181,6 +181,8 @@ class SoilAgent:
 
 		prompt = (
 			"You are a Soil Health Expert for KrishiSaathi, serving Telangana farmers.\n\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n"
+			"Translation to the farmer's language is handled separately by our system.\n\n"
 			"Answer the farmer's soil question with:\n"
 			"- Soil characteristics and suitability\n"
 			"- Recommended fertilizer with exact dosage (kg/acre)\n"

@@ -86,6 +86,20 @@ class TranslationService:
         """Shortcut: translate English *text* → *dest* language."""
         return self.translate(text, source="en", target=dest)
 
+    def ensure_english(self, text: str) -> str:
+        """Safety net: if *text* contains non-Latin scripts, translate it to English.
+
+        Useful when an LLM unexpectedly responds in a non-English language
+        despite being instructed to use English only.
+        """
+        if not text or not text.strip():
+            return text
+        detected = self._detect_by_script(text)
+        if detected != "en":
+            logger.info("LLM response detected as '%s' — translating to English first", detected)
+            return self.translate(text, source=detected, target="en")
+        return text
+
     def detect_language(self, text: str) -> str:
         """Best-effort language detection.
 

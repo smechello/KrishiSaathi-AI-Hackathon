@@ -419,8 +419,11 @@ def _render_advisory(agent: WeatherAgent, lang: str) -> None:
                 weather_data = result.get("weather", {})
                 sources = result.get("sources", [])
 
-                if lang != "en" and advisory:
-                    advisory = translator.from_english(advisory, dest=lang)
+                # Ensure response is English, then translate to user language
+                if advisory:
+                    advisory = translator.ensure_english(advisory)
+                    if lang != "en":
+                        advisory = translator.from_english(advisory, dest=lang)
 
                 # Weather summary on top
                 if weather_data:
