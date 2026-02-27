@@ -76,13 +76,13 @@ class Config:
         "BEDROCK_MODEL_CLASSIFIER", "anthropic.claude-3-haiku-20240307-v1:0"
     )
     BEDROCK_MODEL_AGENT: str = os.getenv(
-        "BEDROCK_MODEL_AGENT", "anthropic.claude-3-5-sonnet-20241022-v2:0"
+        "BEDROCK_MODEL_AGENT", "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
     )
     BEDROCK_MODEL_SYNTHESIS: str = os.getenv(
         "BEDROCK_MODEL_SYNTHESIS", "anthropic.claude-3-haiku-20240307-v1:0"
     )
     BEDROCK_MODEL_VISION: str = os.getenv(
-        "BEDROCK_MODEL_VISION", "anthropic.claude-3-5-sonnet-20241022-v2:0"
+        "BEDROCK_MODEL_VISION", "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
     )
 
     GEMINI_FALLBACK_CHAIN: dict[str, list[str]] = {
