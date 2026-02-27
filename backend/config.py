@@ -136,11 +136,19 @@ class Config:
     if isinstance(_admin_raw, list):
         ADMIN_EMAILS: list[str] = [e.strip().lower() for e in _admin_raw if isinstance(e, str) and e.strip()]
     elif isinstance(_admin_raw, str) and _admin_raw.strip():
-        ADMIN_EMAILS = [
-            e.strip().lower()
-            for e in (json.loads(_admin_raw) if _admin_raw.startswith("[") else _admin_raw.split(","))
-            if e.strip()
-        ]
+        try:
+            ADMIN_EMAILS = [
+                e.strip().lower()
+                for e in (json.loads(_admin_raw) if _admin_raw.startswith("[") else _admin_raw.split(","))
+                if e.strip()
+            ]
+        except (json.JSONDecodeError, ValueError):
+            # Fallback: strip brackets/quotes and split by comma
+            ADMIN_EMAILS = [
+                e.strip().strip('"').strip("'").lower()
+                for e in _admin_raw.strip("[]").split(",")
+                if e.strip().strip('"').strip("'")
+            ]
     else:
         ADMIN_EMAILS = []
 
