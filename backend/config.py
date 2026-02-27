@@ -20,17 +20,40 @@ class Config:
         OPENWEATHER_API_KEY: str | None = os.getenv("OPENWEATHER_API_KEY")
         SUPABASE_URL: str | None = os.getenv("SUPABASE_URL")
         SUPABASE_KEY: str | None = os.getenv("SUPABASE_KEY")
+        # ── Custom email service (Gmail SMTP) ──────────────────────
+        EMAIL_ADDRESS: str | None = os.getenv("EMAIL_ADDRESS") or os.getenv("EMAIL_ID")
+        EMAIL_PASSWORD: str | None = os.getenv("EMAIL_PASSWORD")
+        SUPABASE_SERVICE_KEY: str | None = os.getenv("SUPABASE_SERVICE_KEY")
+        APP_URL: str = os.getenv("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
     else:
         GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
         GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
         OPENWEATHER_API_KEY = st.secrets.get("OPENWEATHER_API_KEY")
         SUPABASE_URL = st.secrets.get("SUPABASE_URL")
         SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")
+        # ── Custom email service (Gmail SMTP) ──────────────────────
+        EMAIL_ADDRESS = st.secrets.get("EMAIL_ADDRESS") or st.secrets.get("EMAIL_ID")  
+        EMAIL_PASSWORD = st.secrets.get("EMAIL_PASSWORD")
+        SUPABASE_SERVICE_KEY = st.secrets.get("SUPABASE_SERVICE_KEY")
+        APP_URL = st.secrets.get("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
+
+    # ── Database Backend ───────────────────────────────────────────────
+    #  "rds"      → Amazon RDS PostgreSQL (AWS-native, recommended)
+    #  "supabase" → Supabase (legacy, hosted Postgres + GoTrue auth)
+    DB_BACKEND: str = os.getenv("DB_BACKEND", "rds")
+
+    # ── RDS PostgreSQL ─────────────────────────────────────────────────
+    RDS_HOST: str = os.getenv("RDS_HOST", "")
+    RDS_PORT: str = os.getenv("RDS_PORT", "5432")
+    RDS_DBNAME: str = os.getenv("RDS_DBNAME", "krishisaathi")
+    RDS_USER: str = os.getenv("RDS_USER", "postgres")
+    RDS_PASSWORD: str = os.getenv("RDS_PASSWORD", os.getenv("DB_PASSWORD", ""))
     
 
     # ── LLM Backend ────────────────────────────────────────────────────
-    #  "groq"   → Groq Cloud  (primary, free 30 RPM / up to 14.4K RPD)
-    #  "gemini" → Google Gemini (fallback, or production with paid key)
+    #  "groq"    → Groq Cloud  (primary, free 30 RPM / up to 14.4K RPD)
+    #  "gemini"  → Google Gemini (fallback, or production with paid key)
+    #  "bedrock" → Amazon Bedrock (AWS-native, Claude 3.5 Sonnet / Haiku)
     LLM_BACKEND: str = os.getenv("LLM_BACKEND", "groq")
 
     # ── Groq model mapping ─────────────────────────────────────────────
@@ -56,6 +79,23 @@ class Config:
 
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
+    # ── Amazon Bedrock model mapping (AWS-native) ──────────────────────
+    #  Requires IAM role attached to EC2 or AWS credentials configured.
+    #  Region should be ap-south-1 (Mumbai) for lowest latency.
+    BEDROCK_REGION: str = os.getenv("AWS_REGION", "ap-south-1")
+    BEDROCK_MODEL_CLASSIFIER: str = os.getenv(
+        "BEDROCK_MODEL_CLASSIFIER", "anthropic.claude-3-haiku-20240307-v1:0"
+    )
+    BEDROCK_MODEL_AGENT: str = os.getenv(
+        "BEDROCK_MODEL_AGENT", "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
+    )
+    BEDROCK_MODEL_SYNTHESIS: str = os.getenv(
+        "BEDROCK_MODEL_SYNTHESIS", "anthropic.claude-3-haiku-20240307-v1:0"
+    )
+    BEDROCK_MODEL_VISION: str = os.getenv(
+        "BEDROCK_MODEL_VISION", "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
+    )
 
     GEMINI_FALLBACK_CHAIN: dict[str, list[str]] = {
         "classifier": ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash"],
@@ -96,11 +136,19 @@ class Config:
     if isinstance(_admin_raw, list):
         ADMIN_EMAILS: list[str] = [e.strip().lower() for e in _admin_raw if isinstance(e, str) and e.strip()]
     elif isinstance(_admin_raw, str) and _admin_raw.strip():
-        ADMIN_EMAILS = [
-            e.strip().lower()
-            for e in (json.loads(_admin_raw) if _admin_raw.startswith("[") else _admin_raw.split(","))
-            if e.strip()
-        ]
+        try:
+            ADMIN_EMAILS = [
+                e.strip().lower()
+                for e in (json.loads(_admin_raw) if _admin_raw.startswith("[") else _admin_raw.split(","))
+                if e.strip()
+            ]
+        except (json.JSONDecodeError, ValueError):
+            # Fallback: strip brackets/quotes and split by comma
+            ADMIN_EMAILS = [
+                e.strip().strip('"').strip("'").lower()
+                for e in _admin_raw.strip("[]").split(",")
+                if e.strip().strip('"').strip("'")
+            ]
     else:
         ADMIN_EMAILS = []
 
@@ -118,8 +166,8 @@ class Config:
 
     @classmethod
     def load_admin_settings(cls) -> dict:
-        """Load admin settings — Supabase first, then local JSON fallback."""
-        # 1. Try Supabase (works on Streamlit Cloud)
+        """Load admin settings — DB first, then local JSON fallback."""
+        # 1. Try database (RDS or Supabase)
         try:
             from backend.services.supabase_service import SupabaseManager
             if SupabaseManager.is_configured():
@@ -198,6 +246,17 @@ class Config:
             cls.LLM_RETRY_BASE_DELAY = int(llm["retry_delay"])
         if "cache_size" in llm:
             cls.LLM_CACHE_SIZE = int(llm["cache_size"])
+        # ── Bedrock overrides ──
+        if "bedrock_region" in llm:
+            cls.BEDROCK_REGION = llm["bedrock_region"]
+        if "bedrock_classifier" in llm:
+            cls.BEDROCK_MODEL_CLASSIFIER = llm["bedrock_classifier"]
+        if "bedrock_agent" in llm:
+            cls.BEDROCK_MODEL_AGENT = llm["bedrock_agent"]
+        if "bedrock_synthesis" in llm:
+            cls.BEDROCK_MODEL_SYNTHESIS = llm["bedrock_synthesis"]
+        if "bedrock_vision" in llm:
+            cls.BEDROCK_MODEL_VISION = llm["bedrock_vision"]
         app = settings.get("app", {})
         if "default_language" in app:
             cls.DEFAULT_LANGUAGE = app["default_language"]
@@ -216,6 +275,11 @@ class Config:
                 "gemini_agent": cls.MODEL_AGENT,
                 "gemini_synthesis": cls.MODEL_SYNTHESIS,
                 "embedding_model": cls.EMBEDDING_MODEL,
+                "bedrock_region": cls.BEDROCK_REGION,
+                "bedrock_classifier": cls.BEDROCK_MODEL_CLASSIFIER,
+                "bedrock_agent": cls.BEDROCK_MODEL_AGENT,
+                "bedrock_synthesis": cls.BEDROCK_MODEL_SYNTHESIS,
+                "bedrock_vision": cls.BEDROCK_MODEL_VISION,
                 "max_retries": cls.LLM_MAX_RETRIES,
                 "retry_delay": cls.LLM_RETRY_BASE_DELAY,
                 "cache_size": cls.LLM_CACHE_SIZE,

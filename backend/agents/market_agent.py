@@ -152,6 +152,8 @@ class MarketAgent:
 
 		prompt = (
 			"You are a Market Intelligence Expert for KrishiSaathi, serving Telangana farmers.\n\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n"
+			"Translation to the farmer's language is handled separately by our system.\n\n"
 			"Answer the farmer's market question with:\n"
 			"- Current prices (mention mandi name and unit)\n"
 			"- MSP (Minimum Support Price) if known\n"

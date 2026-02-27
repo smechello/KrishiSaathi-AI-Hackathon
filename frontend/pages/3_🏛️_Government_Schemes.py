@@ -27,6 +27,7 @@ from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
 from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
 from frontend.components.auth import require_auth  # noqa: E402
+from frontend.components.voice_input import render_voice_input, render_voice_output  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -426,23 +427,31 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
 
     st.markdown(f"#### {_ui(lang, 'tab_advisor')}")
 
+    # If a quick-question button was clicked, pre-fill the text area
+    _pending = st.session_state.pop("_pending_scheme_q", None)
+    if _pending:
+        st.session_state["scheme_advisor_query"] = _pending
+
     query = st.text_area(
         _ui(lang, "advisor_label"),
         placeholder=_ui(lang, "advisor_placeholder"),
         height=100,
         key="scheme_advisor_query",
     )
+    voice_q = render_voice_input(language=lang, key_suffix="scheme")
+    if voice_q:
+        st.info(f"🎤 {voice_q}")
 
     ask_btn = st.button(
         _ui(lang, "advisor_btn"),
         type="primary",
         use_container_width=True,
         key="btn_scheme_advisor",
-        disabled=not query,
+        disabled=not query and not voice_q,
     )
 
-    if ask_btn and query:
-        query_en = query
+    if ask_btn and (query or voice_q):
+        query_en = query or voice_q or ""
         if lang != "en":
             query_en = translator.to_english(query, src=lang)
 
@@ -455,11 +464,16 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
                 answer = result.get("answer", "")
                 sources = result.get("sources", [])
 
-                if lang != "en" and answer:
-                    answer = translator.from_english(answer, dest=lang)
+                # Ensure response is English, then translate to user language
+                if answer:
+                    answer = translator.ensure_english(answer)
+                    if lang != "en":
+                        answer = translator.from_english(answer, dest=lang)
 
                 st.subheader(f"📋 {_ui(lang, 'summary_header')}")
                 st.markdown(answer)
+
+                render_voice_output(answer, language=lang, key_suffix="scheme_adv")
 
                 if sources:
                     src_str = " · ".join(f"`{s}`" for s in sources)
@@ -505,7 +519,7 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
     for i, (col, q) in enumerate(zip(cols, qs)):
         with col:
             if st.button(q[:28] + "…" if len(q) > 28 else q, key=f"sq_{i}", use_container_width=True):
-                st.session_state["scheme_advisor_query"] = q
+                st.session_state["_pending_scheme_q"] = q
                 st.rerun()
 
 

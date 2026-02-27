@@ -284,6 +284,8 @@ class SupervisorAgent:
 
 		prompt = (
 			"You are KrishiSaathi, an expert AI agricultural advisor for Telangana farmers.\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n"
+			"Translation to the farmer's language is handled separately by our system.\n\n"
 			"Answer the farmer's question clearly, practically, and concisely.\n"
 			"If you use information from the knowledge base below, mention the source.\n"
 			"If farmer memory/context is provided, use it to personalise your answer "
@@ -311,6 +313,7 @@ class SupervisorAgent:
 		prompt = (
 			"You are the KrishiSaathi Supervisor Agent. Combine the following specialist responses "
 			"into a single, clear, farmer-friendly answer.\n"
+			"IMPORTANT: You MUST respond entirely in English. Do NOT use Telugu, Hindi, or any other language.\n\n"
 			"Rules:\n"
 			"- Preserve key steps, warnings, and source references\n"
 			"- If sources are mentioned, keep them\n"

@@ -88,11 +88,26 @@ def _clear_all_caches() -> None:
 #  Helpers
 # ═══════════════════════════════════════════════════════════════════════
 
-def _ago(iso_str: str | None) -> str:
-    if not iso_str:
+def _ts(val) -> str:
+    """Normalize a timestamp to an ISO-format string.
+
+    RDS (psycopg2) returns ``datetime`` objects; Supabase returns ISO strings.
+    """
+    if val is None:
+        return ""
+    if isinstance(val, datetime):
+        return val.isoformat()
+    return str(val)
+
+
+def _ago(raw_ts) -> str:
+    if not raw_ts:
         return "—"
     try:
-        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        if isinstance(raw_ts, datetime):
+            dt = raw_ts if raw_ts.tzinfo else raw_ts.replace(tzinfo=timezone.utc)
+        else:
+            dt = datetime.fromisoformat(str(raw_ts).replace("Z", "+00:00"))
         delta = datetime.now(timezone.utc) - dt
         if delta.days > 365:
             return f"{delta.days // 365}y ago"
@@ -106,16 +121,18 @@ def _ago(iso_str: str | None) -> str:
         m = delta.seconds // 60
         return f"{m}m ago" if m > 0 else "just now"
     except Exception:
-        return str(iso_str)[:10]
+        return str(raw_ts)[:10]
 
 
-def _date_str(iso_str: str | None) -> str:
-    if not iso_str:
+def _date_str(raw_ts) -> str:
+    if not raw_ts:
         return "—"
     try:
-        return datetime.fromisoformat(iso_str.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
+        if isinstance(raw_ts, datetime):
+            return raw_ts.strftime("%Y-%m-%d %H:%M")
+        return datetime.fromisoformat(str(raw_ts).replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
     except Exception:
-        return str(iso_str)[:16]
+        return str(raw_ts)[:16]
 
 
 def _build_msg_stats(msgs: list[dict]) -> tuple[Counter, Counter, Counter, dict]:
@@ -128,7 +145,7 @@ def _build_msg_stats(msgs: list[dict]) -> tuple[Counter, Counter, Counter, dict]
         uid = msg.get("user_id", "")
         user_msg_counts[uid] += 1
         roles[msg.get("role", "unknown")] += 1
-        ts = msg.get("created_at", "")
+        ts = _ts(msg.get("created_at", ""))
         if ts:
             daily[ts[:10]] += 1
             if uid not in last_active or ts > last_active[uid]:
@@ -214,7 +231,7 @@ def _render_overview() -> None:
     st.subheader("User Signups")
     signup: Counter = Counter()
     for u in users:
-        ca = u.get("created_at", "")
+        ca = _ts(u.get("created_at", ""))
         if ca:
             signup[ca[:10]] += 1
     if signup:
@@ -309,14 +326,14 @@ def _render_users() -> None:
             with ac1:
                 if st.button("🗑️ Delete Chat", key=f"del_c_{uid}"):
                     try:
-                        SupabaseManager._authed_client().table("chat_history").delete().eq("user_id", uid).execute()
+                        SupabaseManager.admin_delete_user_chats(uid)
                         st.success("Chat deleted"); _clear_all_caches(); st.rerun()
                     except Exception as e:
                         st.error(str(e))
             with ac2:
                 if st.button("🧹 Delete Memories", key=f"del_m_{uid}"):
                     try:
-                        SupabaseManager._authed_client().table("memories").delete().eq("user_id", uid).execute()
+                        SupabaseManager.admin_delete_user_memories(uid)
                         st.success("Memories deleted"); _clear_all_caches(); st.rerun()
                     except Exception as e:
                         st.error(str(e))
@@ -795,8 +812,24 @@ def _render_configuration() -> None:
 
     with st.form("admin_config_form"):
         st.markdown("#### LLM Backend")
-        backend = st.selectbox("Primary Backend", ["groq", "gemini"],
-                               index=0 if llm["backend"] == "groq" else 1)
+        backend_options = ["groq", "gemini", "bedrock"]
+        backend_labels = {
+            "groq": "🟢 Groq Cloud (Legacy — Llama 3.x, Free Tier)",
+            "gemini": "🔵 Google Gemini (Legacy — Fallback)",
+            "bedrock": "🟠 AWS Bedrock (Production — Claude 3.5 Sonnet)",
+        }
+        cur_idx = backend_options.index(llm["backend"]) if llm["backend"] in backend_options else 0
+        backend = st.selectbox(
+            "Primary Backend", backend_options, index=cur_idx,
+            format_func=lambda k: backend_labels.get(k, k),
+        )
+
+        if backend == "bedrock":
+            st.info(
+                "☁️ **AWS Bedrock** requires an IAM Role attached to the EC2 instance "
+                "with `AmazonBedrockFullAccess` policy. No API keys needed — "
+                "authentication is handled by the instance role."
+            )
 
         st.markdown("---")
         st.markdown("#### Groq Models")
@@ -818,6 +851,18 @@ def _render_configuration() -> None:
             gem_syn = st.text_input("Synthesis ", value=llm["gemini_synthesis"])
 
         embed_model = st.text_input("Embedding Model", value=llm["embedding_model"])
+
+        st.markdown("---")
+        st.markdown("#### ☁️ AWS Bedrock Models")
+        st.caption("Used when backend is set to **bedrock**. Models must be enabled in AWS Console → Bedrock → Model Access.")
+        br1, br2 = st.columns(2)
+        with br1:
+            br_cls = st.text_input("Bedrock Classifier", value=llm.get("bedrock_classifier", Config.BEDROCK_MODEL_CLASSIFIER))
+            br_agt = st.text_input("Bedrock Agent", value=llm.get("bedrock_agent", Config.BEDROCK_MODEL_AGENT))
+        with br2:
+            br_syn = st.text_input("Bedrock Synthesis", value=llm.get("bedrock_synthesis", Config.BEDROCK_MODEL_SYNTHESIS))
+            br_vis = st.text_input("Bedrock Vision", value=llm.get("bedrock_vision", Config.BEDROCK_MODEL_VISION))
+        br_region = st.text_input("Bedrock Region", value=llm.get("bedrock_region", Config.BEDROCK_REGION))
 
         st.markdown("---")
         st.markdown("#### LLM Call Settings")
@@ -851,6 +896,11 @@ def _render_configuration() -> None:
                 "gemini_agent": gem_agt,
                 "gemini_synthesis": gem_syn,
                 "embedding_model": embed_model,
+                "bedrock_region": br_region,
+                "bedrock_classifier": br_cls,
+                "bedrock_agent": br_agt,
+                "bedrock_synthesis": br_syn,
+                "bedrock_vision": br_vis,
                 "max_retries": max_retries,
                 "retry_delay": retry_delay,
                 "cache_size": cache_size,
@@ -910,15 +960,13 @@ def _render_system() -> None:
 
     # ── Database health ────────────────────────────────────────────────
     st.markdown("#### Database Health")
-    tables = ["profiles", "chat_history", "memories"]
-    for table in tables:
-        try:
-            client = SupabaseManager._authed_client()
-            res = client.table(table).select("id", count="exact").limit(1).execute()
-            count = res.count if res.count is not None else "?"
-            st.markdown(f"✅ **{table}** — {count} rows")
-        except Exception as e:
-            st.markdown(f"❌ **{table}** — Error: {e}")
+    try:
+        counts = SupabaseManager.admin_get_counts()
+        st.markdown(f"✅ **profiles** — {counts.get('users', '?')} rows")
+        st.markdown(f"✅ **chat_history** — {counts.get('messages', '?')} rows")
+        st.markdown(f"✅ **memories** — {counts.get('memories', '?')} rows")
+    except Exception as e:
+        st.markdown(f"❌ Database health check failed: {e}")
 
     st.divider()
 
@@ -965,7 +1013,7 @@ def _render_system() -> None:
             with y1:
                 if st.button("✅ Yes", key="dz_chats_y"):
                     try:
-                        SupabaseManager._authed_client().table("chat_history").delete().neq("id", 0).execute()
+                        SupabaseManager.admin_clear_all_chats()
                         st.success("Done"); st.session_state.pop("_dz_chats", None)
                         _clear_all_caches(); st.rerun()
                     except Exception as e:
@@ -983,7 +1031,7 @@ def _render_system() -> None:
             with y2:
                 if st.button("✅ Yes", key="dz_mems_y"):
                     try:
-                        SupabaseManager._authed_client().table("memories").delete().neq("id", 0).execute()
+                        SupabaseManager.admin_clear_all_memories()
                         st.success("Done"); st.session_state.pop("_dz_mems", None)
                         _clear_all_caches(); st.rerun()
                     except Exception as e:

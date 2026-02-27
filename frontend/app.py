@@ -31,6 +31,7 @@ from frontend.components.theme import render_page_header, icon, get_theme, get_p
 from frontend.components.auth import require_auth  # noqa: E402
 from backend.services.supabase_service import SupabaseManager  # noqa: E402
 from backend.services.memory_engine import get_memory_engine  # noqa: E402
+from frontend.components.voice_input import render_voice_input, render_voice_output  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -175,14 +176,18 @@ def main() -> None:
     # ── Check for pending query from Quick Actions ─────────────────────
     pending = st.session_state.pop("pending_query", None)
 
-    # ── Chat input ─────────────────────────────────────────────────────
-    user_input = st.chat_input(
-        placeholder=_ui(lang, "input_placeholder"),
-        key="chat_input",
-    )
+    # ── Voice + Text input area ────────────────────────────────────────
+    vcol, tcol = st.columns([1, 11])
+    with vcol:
+        voice_text = render_voice_input(language=lang, key_suffix="main")
+    with tcol:
+        user_input = st.chat_input(
+            placeholder=_ui(lang, "input_placeholder"),
+            key="chat_input",
+        )
 
-    # Use pending quick-action if no direct input
-    query = user_input or pending
+    # Use pending quick-action → voice → typed input (priority order)
+    query = user_input or voice_text or pending
     if not query:
         return
 
@@ -226,9 +231,11 @@ def main() -> None:
                 response_text: str = result.get("response", "")
                 sources: list[str] = result.get("sources", [])
 
-                # Translate response back to user's language
-                if lang != "en" and response_text:
-                    response_text = translator.from_english(response_text, dest=lang)
+                # Ensure response is English, then translate to user language
+                if response_text:
+                    response_text = translator.ensure_english(response_text)
+                    if lang != "en":
+                        response_text = translator.from_english(response_text, dest=lang)
 
             except Exception as exc:
                 logger.error("Backend error: %s", exc, exc_info=True)
@@ -245,6 +252,13 @@ def main() -> None:
                 f'<div class="ks-sources">{src_icon} {src_str}</div>',
                 unsafe_allow_html=True,
             )
+
+        # 🔊 Listen button for TTS playback
+        render_voice_output(
+            text=response_text,
+            language=lang,
+            key_suffix=f"resp_{len(st.session_state.get('messages', []))}",
+        )
 
     # ── Save assistant message ─────────────────────────────────────────
     st.session_state["messages"].append(

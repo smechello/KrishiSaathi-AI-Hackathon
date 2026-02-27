@@ -26,6 +26,7 @@ from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
 from frontend.components.theme import render_page_header  # noqa: E402
 from frontend.components.auth import require_auth  # noqa: E402
+from frontend.components.voice_input import render_voice_input, render_voice_output  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -209,7 +210,9 @@ def main() -> None:
                     if crop_name:
                         ctx_parts.append(f"Crop: {crop_name}")
                     if extra_context:
-                        ctx_parts.append(extra_context)
+                        # Translate user context to English for the agent
+                        ctx_en = translator.to_english(extra_context, src=lang) if lang != "en" else extra_context
+                        ctx_parts.append(ctx_en)
                     ctx = ". ".join(ctx_parts) if ctx_parts else None
 
                     image = Image.open(uploaded)
@@ -224,12 +227,17 @@ def main() -> None:
                             diagnosis = result.get("diagnosis", "")
                             sources = result.get("sources", [])
 
-                            # Translate if needed
-                            if lang != "en" and diagnosis:
-                                diagnosis = translator.from_english(diagnosis, dest=lang)
+                            # Ensure response is English, then translate to user language
+                            if diagnosis:
+                                diagnosis = translator.ensure_english(diagnosis)
+                                if lang != "en":
+                                    diagnosis = translator.from_english(diagnosis, dest=lang)
 
                             st.subheader(f"📋 {_ui(lang, 'results')}")
                             st.markdown(diagnosis)
+
+                            # TTS listen button
+                            render_voice_output(diagnosis, language=lang, key_suffix="img_diag")
 
                             if sources:
                                 src_str = " · ".join(f"`{s}`" for s in sources)
@@ -262,12 +270,17 @@ def main() -> None:
                 key="symptom_input",
             )
 
+            # Voice input for symptoms
+            voice_symptom = render_voice_input(language=lang, key_suffix="crop_txt")
+            if voice_symptom:
+                st.info(f"🎤 {voice_symptom}")
+
             diagnose_txt = st.button(
                 _ui(lang, "text_btn"),
                 use_container_width=True,
                 type="primary",
                 key="btn_diagnose_txt",
-                disabled=not symptoms,
+                disabled=not symptoms and not voice_symptom,
             )
 
             # ── Common diseases quick-reference ────────────────────────
@@ -276,7 +289,8 @@ def main() -> None:
 
         with col_output:
             if diagnose_txt:
-                if not symptoms:
+                effective_symptoms = symptoms or voice_symptom or ""
+                if not effective_symptoms:
                     st.warning(_ui(lang, "no_text"))
                 else:
                     query_parts: list[str] = []
@@ -284,9 +298,9 @@ def main() -> None:
                         query_parts.append(f"Crop: {crop_name_txt}.")
                     # Translate symptoms to English if needed
                     if lang != "en":
-                        query_parts.append(translator.to_english(symptoms, src=lang))
+                        query_parts.append(translator.to_english(effective_symptoms, src=lang))
                     else:
-                        query_parts.append(symptoms)
+                        query_parts.append(effective_symptoms)
                     full_query = " ".join(query_parts)
 
                     with st.spinner(_ui(lang, "thinking")):
@@ -297,11 +311,17 @@ def main() -> None:
                             diagnosis = result.get("diagnosis", "")
                             sources = result.get("sources", [])
 
-                            if lang != "en" and diagnosis:
-                                diagnosis = translator.from_english(diagnosis, dest=lang)
+                            # Ensure response is English, then translate to user language
+                            if diagnosis:
+                                diagnosis = translator.ensure_english(diagnosis)
+                                if lang != "en":
+                                    diagnosis = translator.from_english(diagnosis, dest=lang)
 
                             st.subheader(f"📋 {_ui(lang, 'results')}")
                             st.markdown(diagnosis)
+
+                            # TTS listen button
+                            render_voice_output(diagnosis, language=lang, key_suffix="txt_diag")
 
                             if sources:
                                 src_str = " · ".join(f"`{s}`" for s in sources)
