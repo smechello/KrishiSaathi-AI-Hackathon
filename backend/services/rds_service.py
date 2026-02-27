@@ -656,7 +656,7 @@ class SupabaseManager:
     def admin_list_users(cls) -> list[dict]:
         try:
             rows = _exec(
-                """SELECT id, full_name, preferred_language, location, phone,
+                """SELECT id, full_name, email, preferred_language, location, phone,
                           created_at, updated_at
                    FROM profiles ORDER BY created_at DESC""",
                 fetch="all",
