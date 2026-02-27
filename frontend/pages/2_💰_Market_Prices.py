@@ -26,6 +26,7 @@ from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
 from frontend.components.theme import render_page_header  # noqa: E402
 from frontend.components.auth import require_auth  # noqa: E402
+from frontend.components.voice_input import render_voice_input, render_voice_output  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -534,17 +535,20 @@ def _render_ai_advisor(
             height=100,
             key="advisor_query",
         )
+        voice_q = render_voice_input(language=lang, key_suffix="market")
+        if voice_q:
+            st.info(f"🎤 {voice_q}")
 
     ask_btn = st.button(
         _ui(lang, "advisor_btn"),
         type="primary",
         use_container_width=True,
         key="btn_advisor",
-        disabled=not query,
+        disabled=not query and not voice_q,
     )
 
-    if ask_btn and query:
-        query_en = query
+    if ask_btn and (query or voice_q):
+        query_en = query or voice_q or ""
         if lang != "en":
             query_en = translator.to_english(query, src=lang)
 
@@ -568,6 +572,8 @@ def _render_ai_advisor(
 
                 st.subheader(f"📋 {_ui(lang, 'summary_header')}")
                 st.markdown(summary)
+
+                render_voice_output(summary, language=lang, key_suffix="market_adv")
 
                 if sources:
                     src_str = " · ".join(f"`{s}`" for s in sources)

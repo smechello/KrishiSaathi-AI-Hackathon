@@ -28,6 +28,7 @@ from backend.services.translation_service import translator  # noqa: E402
 from frontend.components.sidebar import render_sidebar  # noqa: E402
 from frontend.components.theme import render_page_header, icon, get_theme, get_palette  # noqa: E402
 from frontend.components.auth import require_auth  # noqa: E402
+from frontend.components.voice_input import render_voice_output  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -433,6 +434,8 @@ def _render_advisory(agent: WeatherAgent, lang: str) -> None:
                     st.info(f"📍 **{city_name}** — {_icon(wdesc)} {wdesc.title()} | 🌡️ {wtemp}°C | 💧 {whum}%")
 
                 st.markdown(advisory)
+
+                render_voice_output(advisory, language=lang, key_suffix="weather_adv")
 
                 if sources:
                     src_str = " · ".join(f"`{s}`" for s in sources)
