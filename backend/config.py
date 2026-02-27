@@ -36,6 +36,18 @@ class Config:
         EMAIL_PASSWORD = st.secrets.get("EMAIL_PASSWORD")
         SUPABASE_SERVICE_KEY = st.secrets.get("SUPABASE_SERVICE_KEY")
         APP_URL = st.secrets.get("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
+
+    # ── Database Backend ───────────────────────────────────────────────
+    #  "rds"      → Amazon RDS PostgreSQL (AWS-native, recommended)
+    #  "supabase" → Supabase (legacy, hosted Postgres + GoTrue auth)
+    DB_BACKEND: str = os.getenv("DB_BACKEND", "rds")
+
+    # ── RDS PostgreSQL ─────────────────────────────────────────────────
+    RDS_HOST: str = os.getenv("RDS_HOST", "")
+    RDS_PORT: str = os.getenv("RDS_PORT", "5432")
+    RDS_DBNAME: str = os.getenv("RDS_DBNAME", "krishisaathi")
+    RDS_USER: str = os.getenv("RDS_USER", "postgres")
+    RDS_PASSWORD: str = os.getenv("RDS_PASSWORD", os.getenv("DB_PASSWORD", ""))
     
 
     # ── LLM Backend ────────────────────────────────────────────────────
@@ -146,8 +158,8 @@ class Config:
 
     @classmethod
     def load_admin_settings(cls) -> dict:
-        """Load admin settings — Supabase first, then local JSON fallback."""
-        # 1. Try Supabase (works on Streamlit Cloud)
+        """Load admin settings — DB first, then local JSON fallback."""
+        # 1. Try database (RDS or Supabase)
         try:
             from backend.services.supabase_service import SupabaseManager
             if SupabaseManager.is_configured():

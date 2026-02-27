@@ -28,20 +28,17 @@ import json
 import logging
 import time
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from backend.config import Config
-
-if TYPE_CHECKING:
-    from supabase import Client
 
 logger = logging.getLogger(__name__)
 
 # ── Optional imports ────────────────────────────────────────────────────
-_supabase_ok = False
+_db_ok = False
 try:
-    from supabase import create_client
-    _supabase_ok = True
+    from backend.services.supabase_service import SupabaseManager
+    _db_ok = True
 except ImportError:
     pass
 
@@ -124,7 +121,7 @@ MEMORY_DECAY_DAYS = 90  # memories lose importance after this many days
 # ═══════════════════════════════════════════════════════════════════════
 
 class MemoryEngine:
-    """Per-user memory store — short-term (session) + long-term (Supabase)."""
+    """Per-user memory store — short-term (session) + long-term (RDS/Supabase)."""
 
     def __init__(self, user_id: str) -> None:
         self.user_id = user_id
@@ -135,27 +132,11 @@ class MemoryEngine:
         # Embedding model
         self._embed_model = Config.EMBEDDING_MODEL
 
-        # Supabase client (lazy, with auth tokens)
-        self._client: Client | None = None
+    # ── DB availability check ─────────────────────────────────────────
 
-    # ── Supabase client ────────────────────────────────────────────────
-
-    def _get_client(self) -> "Client | None":
-        """Get authed Supabase client."""
-        if not _supabase_ok or not getattr(Config, "SUPABASE_URL", None):
-            return None
-        if self._client is None:
-            import streamlit as st
-            self._client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
-            tokens = st.session_state.get("auth_tokens")
-            if tokens:
-                try:
-                    self._client.auth.set_session(
-                        tokens["access_token"], tokens["refresh_token"]
-                    )
-                except Exception:
-                    pass
-        return self._client
+    def _db_ready(self) -> bool:
+        """Check if database backend is available."""
+        return _db_ok and SupabaseManager.is_configured()
 
     # ═══════════════════════════════════════════════════════════════════
     #  Core: Extract → Deduplicate → Store
@@ -278,8 +259,7 @@ class MemoryEngine:
 
         Returns memories sorted by relevance score (descending).
         """
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return []
 
         query_embedding = self._embed(query)
@@ -287,21 +267,15 @@ class MemoryEngine:
             return self._keyword_search(query, top_k)
 
         try:
-            # Fetch all user memories with embeddings for similarity calc
-            res = (
-                client.table("memories")
-                .select("id, content, category, importance, access_count, embedding, created_at, updated_at")
-                .eq("user_id", self.user_id)
-                .execute()
-            )
-            if not res.data:
+            rows = SupabaseManager.memory_select_with_embeddings(self.user_id)
+            if not rows:
                 return []
 
             # Compute cosine similarity + importance scoring
             scored: list[tuple[float, dict]] = []
             now = datetime.now(timezone.utc)
 
-            for row in res.data:
+            for row in rows:
                 row_emb = row.get("embedding")
                 if not row_emb:
                     continue
@@ -311,7 +285,11 @@ class MemoryEngine:
                 sim = self._cosine_similarity(query_embedding, row_emb)
 
                 # Time decay: reduce score for old memories
-                created = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                created_at = row["created_at"]
+                if isinstance(created_at, str):
+                    created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                else:
+                    created = created_at.replace(tzinfo=timezone.utc) if created_at.tzinfo is None else created_at
                 days_old = (now - created).days
                 decay = max(0.3, 1.0 - (days_old / MEMORY_DECAY_DAYS) * 0.5)
 
@@ -347,87 +325,42 @@ class MemoryEngine:
 
     def get_all(self, limit: int = 100) -> list[dict]:
         """Return all memories for this user (newest first)."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return []
         try:
-            res = (
-                client.table("memories")
-                .select("id, content, category, importance, access_count, created_at, updated_at")
-                .eq("user_id", self.user_id)
-                .order("updated_at", desc=True)
-                .limit(limit)
-                .execute()
-            )
-            return res.data or []
+            return SupabaseManager.memory_select_all(self.user_id)[:limit]
         except Exception as exc:
             logger.warning("get_all memories failed: %s", exc)
             return []
 
     def get_by_category(self, category: str) -> list[dict]:
         """Return memories filtered by category."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return []
         try:
-            res = (
-                client.table("memories")
-                .select("id, content, category, importance, access_count, created_at")
-                .eq("user_id", self.user_id)
-                .eq("category", category)
-                .order("importance", desc=True)
-                .execute()
-            )
-            return res.data or []
+            return SupabaseManager.memory_select_by_category(self.user_id, category)
         except Exception as exc:
             logger.warning("get_by_category failed: %s", exc)
             return []
 
     def delete(self, memory_id: int) -> bool:
         """Delete a single memory by ID."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return False
-        try:
-            client.table("memories").delete().eq("id", memory_id).eq("user_id", self.user_id).execute()
-            return True
-        except Exception as exc:
-            logger.warning("delete memory failed: %s", exc)
-            return False
+        return SupabaseManager.memory_delete(memory_id, self.user_id)
 
     def clear_all(self) -> bool:
         """Delete ALL memories for this user."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return False
-        try:
-            client.table("memories").delete().eq("user_id", self.user_id).execute()
-            self._short_term.clear()
-            return True
-        except Exception as exc:
-            logger.warning("clear_all memories failed: %s", exc)
-            return False
+        self._short_term.clear()
+        return SupabaseManager.memory_clear_all(self.user_id)
 
     def stats(self) -> dict:
         """Return memory statistics."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return {"total": 0, "categories": {}}
-        try:
-            res = (
-                client.table("memories")
-                .select("category")
-                .eq("user_id", self.user_id)
-                .execute()
-            )
-            cats: dict[str, int] = {}
-            for row in (res.data or []):
-                c = row.get("category", "other")
-                cats[c] = cats.get(c, 0) + 1
-            return {"total": sum(cats.values()), "categories": cats}
-        except Exception as exc:
-            logger.warning("memory stats failed: %s", exc)
-            return {"total": 0, "categories": {}}
+        return SupabaseManager.memory_stats(self.user_id)
 
     # ═══════════════════════════════════════════════════════════════════
     #  Internal: Fact extraction (LLM)
@@ -509,101 +442,72 @@ class MemoryEngine:
         importance: int,
         embedding: list[float] | None,
     ) -> dict | None:
-        """Insert a new memory into Supabase."""
-        client = self._get_client()
-        if not client:
+        """Insert a new memory via SupabaseManager router."""
+        if not self._db_ready():
             return None
         try:
-            row = {
-                "user_id": self.user_id,
-                "content": content,
-                "category": category,
-                "importance": importance,
-                "access_count": 0,
-                "embedding": json.dumps(embedding) if embedding else None,
-            }
-            res = client.table("memories").insert(row).execute()
-            if res.data:
-                stored = res.data[0]
-                stored.pop("embedding", None)  # don't return embedding in results
+            stored = SupabaseManager.memory_insert(
+                user_id=self.user_id,
+                content=content,
+                category=category,
+                importance=importance,
+                embedding=embedding,
+            )
+            if stored:
+                stored.pop("embedding", None)
                 logger.info("Stored memory: [%s] %s (importance=%d)", category, content[:60], importance)
-                return stored
+            return stored
         except Exception as exc:
             logger.warning("Store memory failed: %s", exc)
         return None
 
     def _update_memory(self, memory_id: str, new_content: str, importance: int) -> None:
-        """Update an existing memory's content."""
-        client = self._get_client()
-        if not client:
+        """Update an existing memory's content via SupabaseManager router."""
+        if not self._db_ready():
             return
         try:
-            client.table("memories").update({
-                "content": new_content,
-                "importance": importance,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }).eq("id", int(memory_id)).eq("user_id", self.user_id).execute()
+            SupabaseManager.memory_update(
+                memory_id=int(memory_id),
+                user_id=self.user_id,
+                content=new_content,
+                importance=importance,
+            )
             logger.info("Updated memory %s: %s", memory_id, new_content[:60])
         except Exception as exc:
             logger.warning("Update memory failed: %s", exc)
 
     def _boost_memory(self, memory_id: int | str) -> None:
         """Increment access_count + update timestamp (recency boost)."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return
         try:
-            # Use RPC if available, otherwise read-modify-write
-            res = (
-                client.table("memories")
-                .select("access_count")
-                .eq("id", int(memory_id))
-                .eq("user_id", self.user_id)
-                .maybe_single()
-                .execute()
+            SupabaseManager.memory_boost(
+                memory_id=int(memory_id),
+                user_id=self.user_id,
             )
-            if res.data:
-                new_count = (res.data.get("access_count") or 0) + 1
-                client.table("memories").update({
-                    "access_count": new_count,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                }).eq("id", int(memory_id)).execute()
         except Exception:
             pass  # non-critical
 
     def _load_existing_memories(self) -> list[dict]:
         """Load all memories for dedup comparison (with embeddings)."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return []
         try:
-            res = (
-                client.table("memories")
-                .select("id, content, category, importance, embedding")
-                .eq("user_id", self.user_id)
-                .execute()
-            )
-            return res.data or []
+            return SupabaseManager.memory_select_with_embeddings(self.user_id)
         except Exception as exc:
             logger.warning("Load existing memories failed: %s", exc)
             return []
 
     def _keyword_search(self, query: str, top_k: int) -> list[dict]:
         """Fallback text search when embeddings are not available."""
-        client = self._get_client()
-        if not client:
+        if not self._db_ready():
             return []
         try:
-            # Simple ILIKE search
-            res = (
-                client.table("memories")
-                .select("id, content, category, importance, access_count, created_at")
-                .eq("user_id", self.user_id)
-                .ilike("content", f"%{query[:50]}%")
-                .limit(top_k)
-                .execute()
+            return SupabaseManager.memory_keyword_search(
+                user_id=self.user_id,
+                query=query[:50],
+                limit=top_k,
             )
-            return res.data or []
         except Exception:
             return []
 

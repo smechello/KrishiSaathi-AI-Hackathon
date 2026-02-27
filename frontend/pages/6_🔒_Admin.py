@@ -309,14 +309,14 @@ def _render_users() -> None:
             with ac1:
                 if st.button("🗑️ Delete Chat", key=f"del_c_{uid}"):
                     try:
-                        SupabaseManager._authed_client().table("chat_history").delete().eq("user_id", uid).execute()
+                        SupabaseManager.admin_delete_user_chats(uid)
                         st.success("Chat deleted"); _clear_all_caches(); st.rerun()
                     except Exception as e:
                         st.error(str(e))
             with ac2:
                 if st.button("🧹 Delete Memories", key=f"del_m_{uid}"):
                     try:
-                        SupabaseManager._authed_client().table("memories").delete().eq("user_id", uid).execute()
+                        SupabaseManager.admin_delete_user_memories(uid)
                         st.success("Memories deleted"); _clear_all_caches(); st.rerun()
                     except Exception as e:
                         st.error(str(e))
@@ -943,15 +943,13 @@ def _render_system() -> None:
 
     # ── Database health ────────────────────────────────────────────────
     st.markdown("#### Database Health")
-    tables = ["profiles", "chat_history", "memories"]
-    for table in tables:
-        try:
-            client = SupabaseManager._authed_client()
-            res = client.table(table).select("id", count="exact").limit(1).execute()
-            count = res.count if res.count is not None else "?"
-            st.markdown(f"✅ **{table}** — {count} rows")
-        except Exception as e:
-            st.markdown(f"❌ **{table}** — Error: {e}")
+    try:
+        counts = SupabaseManager.admin_get_counts()
+        st.markdown(f"✅ **profiles** — {counts.get('users', '?')} rows")
+        st.markdown(f"✅ **chat_history** — {counts.get('messages', '?')} rows")
+        st.markdown(f"✅ **memories** — {counts.get('memories', '?')} rows")
+    except Exception as e:
+        st.markdown(f"❌ Database health check failed: {e}")
 
     st.divider()
 
@@ -998,7 +996,7 @@ def _render_system() -> None:
             with y1:
                 if st.button("✅ Yes", key="dz_chats_y"):
                     try:
-                        SupabaseManager._authed_client().table("chat_history").delete().neq("id", 0).execute()
+                        SupabaseManager.admin_clear_all_chats()
                         st.success("Done"); st.session_state.pop("_dz_chats", None)
                         _clear_all_caches(); st.rerun()
                     except Exception as e:
@@ -1016,7 +1014,7 @@ def _render_system() -> None:
             with y2:
                 if st.button("✅ Yes", key="dz_mems_y"):
                     try:
-                        SupabaseManager._authed_client().table("memories").delete().neq("id", 0).execute()
+                        SupabaseManager.admin_clear_all_memories()
                         st.success("Done"); st.session_state.pop("_dz_mems", None)
                         _clear_all_caches(); st.rerun()
                     except Exception as e:
