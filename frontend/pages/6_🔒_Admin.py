@@ -795,8 +795,24 @@ def _render_configuration() -> None:
 
     with st.form("admin_config_form"):
         st.markdown("#### LLM Backend")
-        backend = st.selectbox("Primary Backend", ["groq", "gemini"],
-                               index=0 if llm["backend"] == "groq" else 1)
+        backend_options = ["groq", "gemini", "bedrock"]
+        backend_labels = {
+            "groq": "🟢 Groq Cloud (Legacy — Llama 3.x, Free Tier)",
+            "gemini": "🔵 Google Gemini (Legacy — Fallback)",
+            "bedrock": "🟠 AWS Bedrock (Production — Claude 3.5 Sonnet)",
+        }
+        cur_idx = backend_options.index(llm["backend"]) if llm["backend"] in backend_options else 0
+        backend = st.selectbox(
+            "Primary Backend", backend_options, index=cur_idx,
+            format_func=lambda k: backend_labels.get(k, k),
+        )
+
+        if backend == "bedrock":
+            st.info(
+                "☁️ **AWS Bedrock** requires an IAM Role attached to the EC2 instance "
+                "with `AmazonBedrockFullAccess` policy. No API keys needed — "
+                "authentication is handled by the instance role."
+            )
 
         st.markdown("---")
         st.markdown("#### Groq Models")
@@ -818,6 +834,18 @@ def _render_configuration() -> None:
             gem_syn = st.text_input("Synthesis ", value=llm["gemini_synthesis"])
 
         embed_model = st.text_input("Embedding Model", value=llm["embedding_model"])
+
+        st.markdown("---")
+        st.markdown("#### ☁️ AWS Bedrock Models")
+        st.caption("Used when backend is set to **bedrock**. Models must be enabled in AWS Console → Bedrock → Model Access.")
+        br1, br2 = st.columns(2)
+        with br1:
+            br_cls = st.text_input("Bedrock Classifier", value=llm.get("bedrock_classifier", Config.BEDROCK_MODEL_CLASSIFIER))
+            br_agt = st.text_input("Bedrock Agent", value=llm.get("bedrock_agent", Config.BEDROCK_MODEL_AGENT))
+        with br2:
+            br_syn = st.text_input("Bedrock Synthesis", value=llm.get("bedrock_synthesis", Config.BEDROCK_MODEL_SYNTHESIS))
+            br_vis = st.text_input("Bedrock Vision", value=llm.get("bedrock_vision", Config.BEDROCK_MODEL_VISION))
+        br_region = st.text_input("Bedrock Region", value=llm.get("bedrock_region", Config.BEDROCK_REGION))
 
         st.markdown("---")
         st.markdown("#### LLM Call Settings")
@@ -851,6 +879,11 @@ def _render_configuration() -> None:
                 "gemini_agent": gem_agt,
                 "gemini_synthesis": gem_syn,
                 "embedding_model": embed_model,
+                "bedrock_region": br_region,
+                "bedrock_classifier": br_cls,
+                "bedrock_agent": br_agt,
+                "bedrock_synthesis": br_syn,
+                "bedrock_vision": br_vis,
                 "max_retries": max_retries,
                 "retry_delay": retry_delay,
                 "cache_size": cache_size,

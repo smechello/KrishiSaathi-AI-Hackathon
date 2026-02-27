@@ -39,8 +39,9 @@ class Config:
     
 
     # ── LLM Backend ────────────────────────────────────────────────────
-    #  "groq"   → Groq Cloud  (primary, free 30 RPM / up to 14.4K RPD)
-    #  "gemini" → Google Gemini (fallback, or production with paid key)
+    #  "groq"    → Groq Cloud  (primary, free 30 RPM / up to 14.4K RPD)
+    #  "gemini"  → Google Gemini (fallback, or production with paid key)
+    #  "bedrock" → Amazon Bedrock (AWS-native, Claude 3.5 Sonnet / Haiku)
     LLM_BACKEND: str = os.getenv("LLM_BACKEND", "groq")
 
     # ── Groq model mapping ─────────────────────────────────────────────
@@ -66,6 +67,23 @@ class Config:
 
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
+    # ── Amazon Bedrock model mapping (AWS-native) ──────────────────────
+    #  Requires IAM role attached to EC2 or AWS credentials configured.
+    #  Region should be ap-south-1 (Mumbai) for lowest latency.
+    BEDROCK_REGION: str = os.getenv("AWS_REGION", "ap-south-1")
+    BEDROCK_MODEL_CLASSIFIER: str = os.getenv(
+        "BEDROCK_MODEL_CLASSIFIER", "anthropic.claude-3-haiku-20240307-v1:0"
+    )
+    BEDROCK_MODEL_AGENT: str = os.getenv(
+        "BEDROCK_MODEL_AGENT", "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    )
+    BEDROCK_MODEL_SYNTHESIS: str = os.getenv(
+        "BEDROCK_MODEL_SYNTHESIS", "anthropic.claude-3-haiku-20240307-v1:0"
+    )
+    BEDROCK_MODEL_VISION: str = os.getenv(
+        "BEDROCK_MODEL_VISION", "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    )
 
     GEMINI_FALLBACK_CHAIN: dict[str, list[str]] = {
         "classifier": ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash"],
@@ -208,6 +226,17 @@ class Config:
             cls.LLM_RETRY_BASE_DELAY = int(llm["retry_delay"])
         if "cache_size" in llm:
             cls.LLM_CACHE_SIZE = int(llm["cache_size"])
+        # ── Bedrock overrides ──
+        if "bedrock_region" in llm:
+            cls.BEDROCK_REGION = llm["bedrock_region"]
+        if "bedrock_classifier" in llm:
+            cls.BEDROCK_MODEL_CLASSIFIER = llm["bedrock_classifier"]
+        if "bedrock_agent" in llm:
+            cls.BEDROCK_MODEL_AGENT = llm["bedrock_agent"]
+        if "bedrock_synthesis" in llm:
+            cls.BEDROCK_MODEL_SYNTHESIS = llm["bedrock_synthesis"]
+        if "bedrock_vision" in llm:
+            cls.BEDROCK_MODEL_VISION = llm["bedrock_vision"]
         app = settings.get("app", {})
         if "default_language" in app:
             cls.DEFAULT_LANGUAGE = app["default_language"]
@@ -226,6 +255,11 @@ class Config:
                 "gemini_agent": cls.MODEL_AGENT,
                 "gemini_synthesis": cls.MODEL_SYNTHESIS,
                 "embedding_model": cls.EMBEDDING_MODEL,
+                "bedrock_region": cls.BEDROCK_REGION,
+                "bedrock_classifier": cls.BEDROCK_MODEL_CLASSIFIER,
+                "bedrock_agent": cls.BEDROCK_MODEL_AGENT,
+                "bedrock_synthesis": cls.BEDROCK_MODEL_SYNTHESIS,
+                "bedrock_vision": cls.BEDROCK_MODEL_VISION,
                 "max_retries": cls.LLM_MAX_RETRIES,
                 "retry_delay": cls.LLM_RETRY_BASE_DELAY,
                 "cache_size": cls.LLM_CACHE_SIZE,

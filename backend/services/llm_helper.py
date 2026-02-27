@@ -1,14 +1,15 @@
-"""LLM Helper — dual-backend wrapper (Groq primary, Gemini fallback).
+"""LLM Helper — triple-backend wrapper (Groq primary, Gemini fallback, Bedrock AWS-native).
 
 Every agent calls ``llm.generate(...)`` instead of touching API clients directly.
 This gives us:
-  - **Dual backend**: Groq (fast, generous free tier) → Gemini (fallback)
+  - **Triple backend**: Groq (fast, generous free tier) → Gemini (fallback) → Bedrock (AWS-native)
+  - Admin can switch between backends at runtime via the admin panel
   - Automatic retry with exponential backoff on transient 429 errors
   - Hard-block detection (``limit: 0``) → instant fallback, no wasted retries
   - Model fallback chains within each backend
   - In-memory LRU response cache
   - Role-based model selection (classifier / agent / synthesis)
-  - Multimodal support (images → Gemini only)
+  - Multimodal support (images → Gemini or Bedrock Claude Vision)
   - Single place to swap models for production
 
 Usage:
@@ -47,6 +48,14 @@ try:
 except ImportError:
     logger.debug("google-generativeai not installed — Gemini backend disabled")
 
+_bedrock_available = False
+try:
+    import boto3
+    import json as _json
+    _bedrock_available = True
+except ImportError:
+    logger.debug("boto3 not installed — Bedrock backend disabled")
+
 
 class _HardBlock(Exception):
     """Raised when a model returns limit:0 — no point retrying."""
@@ -59,10 +68,10 @@ class _BackendExhausted(Exception):
 
 
 class LLMHelper:
-    """Dual-backend LLM wrapper: Groq (primary) + Gemini (fallback)."""
+    """Triple-backend LLM wrapper: Groq (primary) + Gemini (fallback) + Bedrock (AWS)."""
 
     def __init__(self) -> None:
-        self._backend = Config.LLM_BACKEND  # "groq" or "gemini"
+        self._backend = Config.LLM_BACKEND  # "groq", "gemini", or "bedrock"
 
         # ── Groq setup ──
         self._groq_client: Groq | None = None
@@ -72,6 +81,17 @@ class LLMHelper:
         # ── Gemini setup ──
         if _gemini_available and Config.GEMINI_API_KEY:
             genai.configure(api_key=Config.GEMINI_API_KEY)
+
+        # ── Bedrock setup ──
+        self._bedrock_client = None
+        if _bedrock_available:
+            try:
+                self._bedrock_client = boto3.client(
+                    "bedrock-runtime", region_name=Config.BEDROCK_REGION
+                )
+                logger.info("Bedrock client initialised (region=%s)", Config.BEDROCK_REGION)
+            except Exception as exc:
+                logger.warning("Bedrock client init failed: %s", exc)
 
         # Role → model name for each backend
         self._groq_model_map: dict[str, str] = {
@@ -89,6 +109,14 @@ class LLMHelper:
         self._groq_fallback: dict[str, list[str]] = Config.GROQ_FALLBACK_CHAIN
         self._gemini_fallback: dict[str, list[str]] = Config.GEMINI_FALLBACK_CHAIN
 
+        # Bedrock model map (no fallback chain — single model per role)
+        self._bedrock_model_map: dict[str, str] = {
+            "classifier": Config.BEDROCK_MODEL_CLASSIFIER,
+            "agent": Config.BEDROCK_MODEL_AGENT,
+            "synthesis": Config.BEDROCK_MODEL_SYNTHESIS,
+            "vision": Config.BEDROCK_MODEL_VISION,
+        }
+
         # Track hard-blocked models per session (prefixed by backend)
         self._blocked_models: set[str] = set()
 
@@ -101,7 +129,11 @@ class LLMHelper:
         self._max_retries = Config.LLM_MAX_RETRIES
         self._base_delay = Config.LLM_RETRY_BASE_DELAY
 
-        primary_map = self._groq_model_map if self._backend == "groq" else self._gemini_model_map
+        primary_map = (
+            self._groq_model_map if self._backend == "groq"
+            else self._bedrock_model_map if self._backend == "bedrock"
+            else self._gemini_model_map
+        )
         logger.info(
             "LLMHelper ready  (backend=%s  classifier=%s  agent=%s  synthesis=%s  cache=%d)",
             self._backend,
@@ -140,11 +172,20 @@ class LLMHelper:
             self._cache.move_to_end(cache_key)
             return self._cache[cache_key]
 
-        # Multimodal → Gemini only (Groq has no image support)
+        # Multimodal → Gemini or Bedrock (Groq has no image support)
         is_multimodal = isinstance(prompt, list)
 
         if is_multimodal:
-            text = self._generate_gemini(prompt, role)
+            if self._backend == "bedrock" and self._bedrock_client:
+                text = self._generate_bedrock_vision(prompt, role)
+            else:
+                text = self._generate_gemini(prompt, role)
+        elif self._backend == "bedrock" and self._bedrock_client:
+            try:
+                text = self._generate_bedrock(prompt, role)
+            except _BackendExhausted:
+                logger.warning("Bedrock exhausted — falling back to Gemini")
+                text = self._generate_gemini(prompt, role)
         elif self._backend == "groq" and self._groq_client:
             try:
                 text = self._generate_groq(prompt, role)
@@ -167,6 +208,8 @@ class LLMHelper:
         """Return current primary role → model name mapping."""
         if self._backend == "groq":
             return dict(self._groq_model_map)
+        if self._backend == "bedrock":
+            return dict(self._bedrock_model_map)
         return dict(self._gemini_model_map)
 
     def cache_stats(self) -> dict[str, int]:
@@ -188,6 +231,12 @@ class LLMHelper:
             "agent": Config.MODEL_AGENT,
             "synthesis": Config.MODEL_SYNTHESIS,
         }
+        self._bedrock_model_map = {
+            "classifier": Config.BEDROCK_MODEL_CLASSIFIER,
+            "agent": Config.BEDROCK_MODEL_AGENT,
+            "synthesis": Config.BEDROCK_MODEL_SYNTHESIS,
+            "vision": Config.BEDROCK_MODEL_VISION,
+        }
         self._groq_fallback = Config.GROQ_FALLBACK_CHAIN
         self._gemini_fallback = Config.GEMINI_FALLBACK_CHAIN
         self._max_retries = Config.LLM_MAX_RETRIES
@@ -198,10 +247,24 @@ class LLMHelper:
             self._cache.clear()
         self._blocked_models.clear()
         self._gemini_models.clear()
+
+        # Re-init Bedrock client if region changed
+        if _bedrock_available:
+            try:
+                self._bedrock_client = boto3.client(
+                    "bedrock-runtime", region_name=Config.BEDROCK_REGION
+                )
+            except Exception:
+                pass
+
         logger.info(
             "LLMHelper reloaded  (backend=%s  agent=%s)",
             self._backend,
-            self._groq_model_map["agent"] if self._backend == "groq" else self._gemini_model_map["agent"],
+            (
+                self._groq_model_map["agent"] if self._backend == "groq"
+                else self._bedrock_model_map["agent"] if self._backend == "bedrock"
+                else self._gemini_model_map["agent"]
+            ),
         )
 
     # ── Groq backend ───────────────────────────────────────────────────
@@ -334,6 +397,127 @@ class LLMHelper:
                         model.model_name, role,
                         "rate-limited" if is_rate_limit else "server error",
                         delay, attempt, self._max_retries,
+                    )
+                    time.sleep(delay)
+                else:
+                    raise
+        return ""
+
+    # ── Bedrock backend ──────────────────────────────────────────────
+
+    def _generate_bedrock(self, prompt: str, role: str) -> str:
+        """Call Amazon Bedrock (Anthropic Claude models) for text generation."""
+        if not self._bedrock_client:
+            raise _BackendExhausted("Bedrock client not available")
+
+        model_id = self._bedrock_model_map.get(role, self._bedrock_model_map["agent"])
+
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                body = _json.dumps({
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 2048,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.3 if role == "classifier" else 0.7,
+                })
+                response = self._bedrock_client.invoke_model(
+                    modelId=model_id,
+                    body=body,
+                    contentType="application/json",
+                    accept="application/json",
+                )
+                result = _json.loads(response["body"].read())
+                return result["content"][0]["text"].strip()
+            except Exception as exc:
+                err = str(exc)
+                is_throttle = "ThrottlingException" in err or "429" in err
+                is_server = "500" in err or "503" in err or "ServiceUnavailable" in err
+
+                if (is_throttle or is_server) and attempt < self._max_retries:
+                    delay = self._base_delay * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Bedrock %s (role=%s) — %s — retry %ds (%d/%d)",
+                        model_id, role,
+                        "throttled" if is_throttle else "server error",
+                        delay, attempt, self._max_retries,
+                    )
+                    time.sleep(delay)
+                else:
+                    raise
+        return ""
+
+    def _generate_bedrock_vision(self, prompt: list[Any], role: str) -> str:
+        """Call Amazon Bedrock Claude Vision for multimodal (text + image) input."""
+        if not self._bedrock_client:
+            raise RuntimeError("Bedrock client not available for vision")
+
+        import base64
+        import io
+
+        model_id = self._bedrock_model_map.get("vision", self._bedrock_model_map["agent"])
+
+        # Separate text parts and image parts from the prompt list
+        text_parts = []
+        image_b64 = None
+        media_type = "image/jpeg"
+
+        for item in prompt:
+            if isinstance(item, str):
+                text_parts.append(item)
+            else:
+                # Assume PIL Image
+                try:
+                    buf = io.BytesIO()
+                    item.save(buf, format="JPEG")
+                    image_b64 = base64.b64encode(buf.getvalue()).decode()
+                except Exception:
+                    try:
+                        buf = io.BytesIO()
+                        item.save(buf, format="PNG")
+                        image_b64 = base64.b64encode(buf.getvalue()).decode()
+                        media_type = "image/png"
+                    except Exception as exc:
+                        logger.warning("Could not serialise image for Bedrock: %s", exc)
+
+        combined_text = "\n".join(text_parts)
+
+        # Build message content
+        content: list[dict] = []
+        if image_b64:
+            content.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": image_b64,
+                },
+            })
+        content.append({"type": "text", "text": combined_text})
+
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                body = _json.dumps({
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 2048,
+                    "messages": [{"role": "user", "content": content}],
+                    "temperature": 0.7,
+                })
+                response = self._bedrock_client.invoke_model(
+                    modelId=model_id,
+                    body=body,
+                    contentType="application/json",
+                    accept="application/json",
+                )
+                result = _json.loads(response["body"].read())
+                return result["content"][0]["text"].strip()
+            except Exception as exc:
+                err = str(exc)
+                is_throttle = "ThrottlingException" in err or "429" in err
+                if is_throttle and attempt < self._max_retries:
+                    delay = self._base_delay * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Bedrock Vision %s — throttled — retry %ds (%d/%d)",
+                        model_id, delay, attempt, self._max_retries,
                     )
                     time.sleep(delay)
                 else:
