@@ -139,6 +139,17 @@ def _ui(lang: str, key: str) -> str:
     return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _t(text: str, lang: str) -> str:
+    """Translate an English string to the user's language (cached)."""
+    if not text or lang == "en":
+        return text
+    try:
+        return translator.from_english(text, dest=lang)
+    except Exception:
+        return text
+
+
 # ── Cached resources ───────────────────────────────────────────────────
 
 @st.cache_resource(show_spinner="Loading weather engine …")
@@ -239,6 +250,7 @@ def _render_current(lang: str) -> None:
 
     city_name = st.session_state.get("weather_city_name", "")
     desc = current.get("description", "Clear")
+    desc_local = _t(desc, lang)
     wicon = _icon(desc)
 
     # ── Big weather display ────────────────────────────────────────────
@@ -247,7 +259,7 @@ def _render_current(lang: str) -> None:
         <div class="ks-hero">
             <h2>{wicon} {city_name}</h2>
             <h1 style="margin:0; font-size:3.5rem;">{current.get('temperature_c', '--')}°C</h1>
-            <p style="font-size:1.2rem; margin:0;">{desc.title()}</p>
+            <p style="font-size:1.2rem; margin:0;">{desc_local.title()}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -261,7 +273,7 @@ def _render_current(lang: str) -> None:
     with mc3:
         st.metric(f"💨 {_ui(lang, 'wind')}", f"{current.get('wind_speed', '--')} km/h")
     with mc4:
-        st.metric(f"🌤️ {_ui(lang, 'condition')}", desc.title())
+        st.metric(f"🌤️ {_ui(lang, 'condition')}", desc_local.title())
 
     # ── Spray check ────────────────────────────────────────────────────
     st.divider()
@@ -270,7 +282,7 @@ def _render_current(lang: str) -> None:
     spray: dict | None = st.session_state.get("weather_spray")
     if spray:
         can_spray = spray.get("spray", False)
-        reason = spray.get("reason", "")
+        reason = _t(spray.get("reason", ""), lang)
 
         if can_spray:
             st.success(_ui(lang, "spray_ok"))
@@ -303,9 +315,9 @@ def _render_current(lang: str) -> None:
 
     if alerts:
         st.markdown("---")
-        st.markdown("**⚠️ Weather Alerts:**")
+        st.markdown(f"**⚠️ {_t('Weather Alerts', lang)}:**")
         for a in alerts:
-            st.markdown(a)
+            st.markdown(_t(a, lang))
 
 
 # ── Tab 2: 5-Day Forecast ─────────────────────────────────────────────
@@ -327,6 +339,7 @@ def _render_forecast(lang: str) -> None:
         temp = day.get("temp_c", day.get("temperature_c", "--"))
         hum = day.get("humidity", "--")
         desc = day.get("description", "Clear")
+        desc_local = _t(desc, lang)
         wicon = _icon(desc)
 
         with col:
@@ -337,7 +350,7 @@ def _render_forecast(lang: str) -> None:
                     <span style="font-size:2rem;">{wicon}</span><br>
                     <span style="font-size:1.5rem; color:{pal['primary']};">{temp}°C</span><br>
                     <span style="color:{pal['text_muted']};">💧 {hum}%</span><br>
-                    <span style="color:{pal['text_muted']}; font-size:0.85rem;">{desc.title()}</span>
+                    <span style="color:{pal['text_muted']}; font-size:0.85rem;">{desc_local.title()}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -431,7 +444,8 @@ def _render_advisory(agent: WeatherAgent, lang: str) -> None:
                     wtemp = weather_data.get("temperature_c", "--")
                     whum = weather_data.get("humidity", "--")
                     wdesc = weather_data.get("description", "")
-                    st.info(f"📍 **{city_name}** — {_icon(wdesc)} {wdesc.title()} | 🌡️ {wtemp}°C | 💧 {whum}%")
+                    wdesc_local = _t(wdesc, lang)
+                    st.info(f"📍 **{city_name}** — {_icon(wdesc)} {wdesc_local.title()} | 🌡️ {wtemp}°C | 💧 {whum}%")
 
                 st.markdown(advisory)
 
@@ -449,20 +463,20 @@ def _render_advisory(agent: WeatherAgent, lang: str) -> None:
     # ── Quick crop advisories ──────────────────────────────────────────
     if current:
         st.divider()
-        st.markdown("**🌾 Quick Rule-Based Advice:**")
+        st.markdown(f"**🌾 {_t('Quick Rule-Based Advice', lang)}:**")
         for crop_name in ["Rice", "Cotton", "Chilli"]:
             try:
                 advice = agent.get_crop_advisory(crop_name, current)
                 if advice:
-                    with st.expander(f"🌱 {crop_name}", expanded=False):
+                    with st.expander(f"🌱 {_t(crop_name, lang)}", expanded=False):
                         if isinstance(advice, dict):
                             for k, v in advice.items():
-                                st.markdown(f"- **{k}:** {v}")
+                                st.markdown(f"- **{_t(k, lang)}:** {_t(str(v), lang)}")
                         elif isinstance(advice, list):
                             for a in advice:
-                                st.markdown(f"- {a}")
+                                st.markdown(f"- {_t(str(a), lang)}")
                         else:
-                            st.markdown(str(advice))
+                            st.markdown(_t(str(advice), lang))
             except Exception:
                 pass
 

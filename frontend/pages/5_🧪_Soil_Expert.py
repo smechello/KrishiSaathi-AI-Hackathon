@@ -155,6 +155,17 @@ def _ui(lang: str, key: str) -> str:
     return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _t(text: str, lang: str) -> str:
+    """Translate an English string to the user's language (cached)."""
+    if not text or lang == "en":
+        return text
+    try:
+        return translator.from_english(text, dest=lang)
+    except Exception:
+        return text
+
+
 # ── Cached resources ───────────────────────────────────────────────────
 
 @st.cache_resource(show_spinner="Loading soil engine …")
@@ -204,11 +215,11 @@ def main() -> None:
 
     kc1, kc2, kc3 = st.columns(3)
     with kc1:
-        st.metric("🧪 Soil Types", len(soils))
+        st.metric(f"🧪 {_t('Soil Types', lang)}", len(soils))
     with kc2:
-        st.metric("🌾 Crops Covered", len(all_crops))
+        st.metric(f"🌾 {_t('Crops Covered', lang)}", len(all_crops))
     with kc3:
-        st.metric("📍 Telangana Focus", "All 33 Districts")
+        st.metric(f"📍 {_t('Telangana Focus', lang)}", _t("All 33 Districts", lang))
     st.divider()
 
     # ── Tabs ───────────────────────────────────────────────────────────
@@ -294,14 +305,14 @@ def _render_analyzer(soils: list[dict], agent: SoilAgent, lang: str) -> None:
             for k, v in chars.items():
                 label = k.replace("_", " ").title()
                 ui_key = k.lower().replace(" ", "_")
-                display = _ui(lang, ui_key) if ui_key in _UI.get(lang, {}) else label
-                st.markdown(f"- **{display}:** {v}")
+                display = _ui(lang, ui_key) if ui_key in _UI.get(lang, {}) else _t(label, lang)
+                st.markdown(f"- **{display}:** {_t(str(v), lang)}")
         st.markdown("")
 
         # Suitable crops
         st.markdown(f"#### 🌾 {_ui(lang, 'suitable_crops')}")
         if crops:
-            st.markdown(", ".join(f"**{c}**" for c in crops))
+            st.markdown(", ".join(f"**{_t(c, lang)}**" for c in crops))
 
         # Regions
         st.markdown(f"#### 📍 {_ui(lang, 'regions')}")
@@ -318,7 +329,7 @@ def _render_analyzer(soils: list[dict], agent: SoilAgent, lang: str) -> None:
         st.markdown(f"#### 💡 {_ui(lang, 'management_tips')}")
         if tips:
             for tip in tips:
-                st.markdown(f"- {tip}")
+                st.markdown(f"- {_t(tip, lang)}")
 
 
 def _render_nutrient_chart(nutrients: dict, soil_name: str) -> None:
@@ -397,7 +408,7 @@ def _render_fertilizer(agent: SoilAgent, lang: str) -> None:
                 return
 
         # ── Chemical fertilizers ───────────────────────────────────────
-        st.markdown(f"### 🧪 {_ui(lang, 'fert_header')} — {crop} ({land} acres)")
+        st.markdown(f"### 🧪 {_ui(lang, 'fert_header')} — {_t(crop, lang)} ({land} {_t('acres', lang)})")
 
         if isinstance(fert, dict):
             # NPK values
@@ -408,14 +419,14 @@ def _render_fertilizer(agent: SoilAgent, lang: str) -> None:
             if npk:
                 nc1, nc2, nc3 = st.columns(3)
                 with nc1:
-                    st.metric("🟢 Nitrogen (N)", f"{npk.get('N', npk.get('n', '--'))} kg")
+                    st.metric(f"🟢 {_t('Nitrogen', lang)} (N)", f"{npk.get('N', npk.get('n', '--'))} kg")
                 with nc2:
-                    st.metric("🔵 Phosphorus (P)", f"{npk.get('P', npk.get('p', '--'))} kg")
+                    st.metric(f"🟥 {_t('Phosphorus', lang)} (P)", f"{npk.get('P', npk.get('p', '--'))} kg")
                 with nc3:
-                    st.metric("🟠 Potassium (K)", f"{npk.get('K', npk.get('k', '--'))} kg")
+                    st.metric(f"🟠 {_t('Potassium', lang)} (K)", f"{npk.get('K', npk.get('k', '--'))} kg")
 
             if isinstance(products, dict):
-                st.markdown("#### 📦 Products Required:")
+                st.markdown(f"#### 📦 {_t('Products Required', lang)}:")
                 prod_cols = st.columns(min(len(products), 4)) if products else []
                 for i, (prod_name, details) in enumerate(products.items()):
                     with prod_cols[i % len(prod_cols)] if prod_cols else st.container():
@@ -426,7 +437,7 @@ def _render_fertilizer(agent: SoilAgent, lang: str) -> None:
                             st.markdown(
                                 f"""
                                 <div class="ks-card" style="text-align:center; padding:0.8rem; margin:0.3rem 0;">
-                                    <b>{prod_name}</b><br>
+                                    <b>{_t(prod_name, lang)}</b><br>
                                     <span style="font-size:1.3rem; color:{_pal['primary']};">{qty}</span><br>
                                     <span style="color:{_pal['text_muted']};">₹{cost}</span>
                                 </div>
@@ -434,16 +445,16 @@ def _render_fertilizer(agent: SoilAgent, lang: str) -> None:
                                 unsafe_allow_html=True,
                             )
                         else:
-                            st.markdown(f"- **{prod_name}:** {details}")
+                            st.markdown(f"- **{_t(prod_name, lang)}:** {_t(str(details), lang)}")
             elif isinstance(products, list):
                 for p in products:
-                    st.markdown(f"- {p}")
+                    st.markdown(f"- {_t(str(p), lang)}")
 
             if total_cost:
-                st.success(f"💰 **{_ui(lang, 'cost_estimate')}:** ₹{total_cost:,.0f} for {land} acres")
+                st.success(f"💰 **{_ui(lang, 'cost_estimate')}:** ₹{total_cost:,.0f} {_t('for', lang)} {land} {_t('acres', lang)}")
 
         elif isinstance(fert, str):
-            st.markdown(fert)
+            st.markdown(_t(fert, lang))
 
         # ── Organic alternatives ───────────────────────────────────────
         st.divider()
@@ -451,24 +462,24 @@ def _render_fertilizer(agent: SoilAgent, lang: str) -> None:
 
         if isinstance(organic, dict):
             for org_name, org_details in organic.items():
-                with st.expander(f"🌱 {org_name}", expanded=False):
+                with st.expander(f"🌱 {_t(org_name, lang)}", expanded=False):
                     if isinstance(org_details, dict):
                         for k, v in org_details.items():
-                            st.markdown(f"- **{k.replace('_', ' ').title()}:** {v}")
+                            st.markdown(f"- **{_t(k.replace('_', ' ').title(), lang)}:** {_t(str(v), lang)}")
                     else:
-                        st.markdown(str(org_details))
+                        st.markdown(_t(str(org_details), lang))
         elif isinstance(organic, list):
             for item in organic:
                 if isinstance(item, dict):
                     name = item.get("name", "Alternative")
-                    with st.expander(f"🌱 {name}", expanded=False):
+                    with st.expander(f"🌱 {_t(name, lang)}", expanded=False):
                         for k, v in item.items():
                             if k != "name":
-                                st.markdown(f"- **{k.replace('_', ' ').title()}:** {v}")
+                                st.markdown(f"- **{_t(k.replace('_', ' ').title(), lang)}:** {_t(str(v), lang)}")
                 else:
-                    st.markdown(f"- {item}")
+                    st.markdown(f"- {_t(str(item), lang)}")
         elif isinstance(organic, str):
-            st.markdown(organic)
+            st.markdown(_t(organic, lang))
 
 
 # ── Tab 3: Crop Rotation ──────────────────────────────────────────────
@@ -506,32 +517,32 @@ def _render_rotation(agent: SoilAgent, lang: str) -> None:
                 st.error(f"Rotation plan failed: {exc}")
                 return
 
-        st.markdown(f"### 🔄 Rotation Plan for **{crop}**")
+        st.markdown(f"### 🔄 {_t('Rotation Plan for', lang)} **{_t(crop, lang)}**")
 
         if isinstance(rotation, dict):
             for year_key, details in rotation.items():
-                yr_label = year_key.replace("_", " ").title()
+                yr_label = _t(year_key.replace("_", " ").title(), lang)
                 with st.expander(f"📅 {yr_label}", expanded=True):
                     if isinstance(details, dict):
                         for k, v in details.items():
-                            st.markdown(f"- **{k.replace('_', ' ').title()}:** {v}")
+                            st.markdown(f"- **{_t(k.replace('_', ' ').title(), lang)}:** {_t(str(v), lang)}")
                     elif isinstance(details, list):
                         for d in details:
-                            st.markdown(f"- {d}")
+                            st.markdown(f"- {_t(str(d), lang)}")
                     else:
-                        st.markdown(str(details))
+                        st.markdown(_t(str(details), lang))
         elif isinstance(rotation, list):
             for i, item in enumerate(rotation):
-                with st.expander(f"📅 Year {i+1}", expanded=True):
+                with st.expander(f"📅 {_t('Year', lang)} {i+1}", expanded=True):
                     if isinstance(item, dict):
                         for k, v in item.items():
-                            st.markdown(f"- **{k.replace('_', ' ').title()}:** {v}")
+                            st.markdown(f"- **{_t(k.replace('_', ' ').title(), lang)}:** {_t(str(v), lang)}")
                     else:
-                        st.markdown(str(item))
+                        st.markdown(_t(str(item), lang))
         elif isinstance(rotation, str):
-            st.markdown(rotation)
+            st.markdown(_t(rotation, lang))
         else:
-            st.markdown(str(rotation))
+            st.markdown(_t(str(rotation), lang))
 
 
 # ── Tab 4: AI Soil Advisor ────────────────────────────────────────────

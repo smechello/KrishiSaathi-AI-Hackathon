@@ -116,6 +116,17 @@ def _ui(lang: str, key: str) -> str:
     return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _t(text: str, lang: str) -> str:
+    """Translate arbitrary English text to *lang*; cached 1 h."""
+    if not text or lang == "en":
+        return text
+    try:
+        return translator.from_english(text, dest=lang)
+    except Exception:
+        return text
+
+
 # ── Cached resources ───────────────────────────────────────────────────
 @st.cache_resource(show_spinner="Initialising Crop Doctor …")
 def _get_crop_doctor() -> CropDoctorAgent:
@@ -189,16 +200,16 @@ def main() -> None:
 
             # ── Photo tips (collapsible) ───────────────────────────────
             with st.expander(_ui(lang, "tips_header"), expanded=False):
-                st.markdown(
-                    """
-                    1. **Lighting** — Take photos in natural daylight, avoid shadows
-                    2. **Focus** — Get close to the affected area, ensure clear focus
-                    3. **Background** — Hold the leaf/fruit against a plain background
-                    4. **Multiple angles** — If possible, photograph top and bottom of leaf
-                    5. **Healthy comparison** — Include a healthy leaf next to the diseased one
-                    6. **Context** — Mention the crop name and growth stage for better results
-                    """
-                )
+                tips = [
+                    "Lighting — Take photos in natural daylight, avoid shadows",
+                    "Focus — Get close to the affected area, ensure clear focus",
+                    "Background — Hold the leaf/fruit against a plain background",
+                    "Multiple angles — If possible, photograph top and bottom of leaf",
+                    "Healthy comparison — Include a healthy leaf next to the diseased one",
+                    "Context — Mention the crop name and growth stage for better results",
+                ]
+                for i, tip in enumerate(tips, 1):
+                    st.markdown(f"{i}. **{_t(tip, lang)}**")
 
         with col_result:
             if diagnose_img:
@@ -241,13 +252,13 @@ def main() -> None:
 
                             if sources:
                                 src_str = " · ".join(f"`{s}`" for s in sources)
-                                st.caption(f"📚 Sources: {src_str}")
+                                st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
 
                             st.caption(f"⏱️ {elapsed:.1f}s")
 
                         except Exception as exc:
                             logger.error("Image diagnosis error: %s", exc, exc_info=True)
-                            st.error(f"Diagnosis failed: {exc}")
+                            st.error(f"{_t('Diagnosis failed', lang)}: {exc}")
 
     # ================================================================
     # TAB 2: TEXT DIAGNOSIS
@@ -325,17 +336,18 @@ def main() -> None:
 
                             if sources:
                                 src_str = " · ".join(f"`{s}`" for s in sources)
-                                st.caption(f"📚 Sources: {src_str}")
+                                st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
 
                             st.caption(f"⏱️ {elapsed:.1f}s")
 
                         except Exception as exc:
                             logger.error("Text diagnosis error: %s", exc, exc_info=True)
-                            st.error(f"Diagnosis failed: {exc}")
+                            st.error(f"{_t('Diagnosis failed', lang)}: {exc}")
 
 
 def _render_common_diseases() -> None:
     """Show a quick-reference grid of common Telangana crop diseases."""
+    lang = st.session_state.get("language", "en")
     diseases = [
         {"crop": "Rice", "disease": "Blast (Leaf & Neck)", "severity": "🔴 High", "symptom": "Diamond-shaped grey spots"},
         {"crop": "Rice", "disease": "Sheath Blight", "severity": "🟡 Medium", "symptom": "Oval lesions on leaf sheath"},
@@ -350,9 +362,11 @@ def _render_common_diseases() -> None:
     ]
 
     for d in diseases:
+        sev_emoji = d['severity'].split(' ')[0]  # keep emoji
+        sev_text = d['severity'].split(' ', 1)[1] if ' ' in d['severity'] else d['severity']
         st.markdown(
-            f"**{d['crop']}** — {d['disease']} {d['severity']}\n"
-            f"> _{d['symptom']}_"
+            f"**{_t(d['crop'], lang)}** — {_t(d['disease'], lang)} {sev_emoji} {_t(sev_text, lang)}\n"
+            f"> _{_t(d['symptom'], lang)}_"
         )
 
 
