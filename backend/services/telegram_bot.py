@@ -42,7 +42,7 @@ from backend.main import KrishiSaathi
 from backend.services.translation_service import translator
 from backend.services.supabase_service import SupabaseManager
 from backend.services.memory_engine import get_memory_engine
-from backend.services.voice_service import voice, POLLY_UNSUPPORTED
+from backend.services.voice_service import voice
 
 logger = logging.getLogger(__name__)
 
@@ -575,23 +575,14 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         # Also send voice reply (TTS)
         try:
-            tts_text = response_text
-            tts_lang = lang
-
-            # For languages without Polly voice, translate to Hindi for TTS
-            if lang in POLLY_UNSUPPORTED:
-                tts_text = translator.from_english(
-                    translator.ensure_english(response_text), dest="hi"
-                )
-                tts_lang = "hi"
-
             audio_bytes = voice.text_to_speech(
-                text=tts_text,
-                language=tts_lang,
+                text=response_text,
+                language=lang,
                 output_format="ogg_vorbis",
             )
 
             if audio_bytes and len(audio_bytes) > 100:
+                # gTTS returns mp3, Polly returns ogg — both playable
                 await update.message.reply_voice(
                     voice=io.BytesIO(audio_bytes),
                     reply_to_message_id=update.message.message_id,

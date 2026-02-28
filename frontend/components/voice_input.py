@@ -154,26 +154,13 @@ def render_voice_output(
 def _play_tts(text: str, language: str) -> None:
     """Generate TTS audio and play it via st.audio."""
     try:
-        from backend.services.voice_service import voice, POLLY_UNSUPPORTED
+        from backend.services.voice_service import voice
 
-        tts_lang = language
-        tts_text = text
-
-        # If language has no Polly voice, translate to Hindi for TTS
-        if language in POLLY_UNSUPPORTED:
-            try:
-                from backend.services.translation_service import translator
-                tts_text = translator.from_english(
-                    translator.ensure_english(text), dest="hi"
-                )
-                tts_lang = "hi"
-            except Exception:
-                tts_lang = "en"
-                tts_text = text
-
+        # voice_service now handles all languages natively
+        # (Polly for en/hi, gTTS for te/ta/kn/ml/mr/bn/gu/pa)
         audio_bytes = voice.text_to_speech(
-            text=tts_text,
-            language=tts_lang,
+            text=text,
+            language=language,
             output_format="mp3",
         )
 
