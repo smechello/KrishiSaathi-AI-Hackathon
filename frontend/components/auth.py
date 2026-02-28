@@ -32,18 +32,26 @@ _COOKIE_NAME = "ks_session"
 _COOKIE_MAX_AGE = 86400  # 24 hours in seconds
 
 
-def _set_auth_cookie(token: str) -> None:
-    """Inject JS to set a session cookie in the browser."""
+def _set_auth_cookie(token: str, remember: bool = True) -> None:
+    """Inject JS to set a session cookie in the browser.
+
+    If *remember* is True, cookie persists for 24 h.
+    If False, it's a session cookie (cleared when the browser closes).
+    """
+    if remember:
+        age_part = f"max-age={_COOKIE_MAX_AGE};"
+    else:
+        age_part = ""  # session cookie — no max-age
     components.html(
         f"""<script>
-        document.cookie = "{_COOKIE_NAME}={token}; path=/; max-age={_COOKIE_MAX_AGE}; SameSite=Lax; Secure";
+        document.cookie = "{_COOKIE_NAME}={token}; path=/; {age_part} SameSite=Lax; Secure";
         </script>""",
         height=0, width=0,
     )
 
 
-def _clear_auth_cookie() -> None:
-    """Inject JS to delete the session cookie."""
+def _inject_clear_cookie_js() -> None:
+    """Inject JS to delete the session cookie (called on rendered page)."""
     components.html(
         f"""<script>
         document.cookie = "{_COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax; Secure";
@@ -63,6 +71,9 @@ def _get_auth_cookie() -> str | None:
 
 def _restore_from_cookie() -> bool:
     """Try to restore session from browser cookie. Returns True on success."""
+    # If user just signed out, don't restore from cookie
+    if st.session_state.get("_pending_cookie_clear"):
+        return False
     token = _get_auth_cookie()
     if not token:
         return False
@@ -212,6 +223,21 @@ def render_auth_page() -> None:
     inject_global_css(theme)
     _inject_auth_css(pal, theme)
 
+    # ── Hide sidebar & page navigation on the login screen ────────
+    st.markdown(
+        """<style>
+        [data-testid="stSidebar"] { display: none !important; }
+        [data-testid="stSidebarNav"] { display: none !important; }
+        header[data-testid="stHeader"] { display: none !important; }
+        [data-testid="stSidebarCollapsedControl"] { display: none !important; }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+
+    # ── Clear cookie if user just signed out (JS runs on THIS render) ──
+    if st.session_state.pop("_pending_cookie_clear", False):
+        _inject_clear_cookie_js()
+
     # ── Handle verification / reset links from email ───────────────
     params = st.query_params
     if "verify_token" in params:
@@ -278,6 +304,8 @@ def _render_login_form(pal: dict) -> None:
         password = st.text_input("Password", type="password",
                                  placeholder="Enter your password",
                                  key="login_password")
+        remember = st.checkbox("🔒 Remember me for 24 hours", value=True,
+                               key="login_remember")
         col1, col2 = st.columns([3, 1])
         with col1:
             submitted = st.form_submit_button(
@@ -297,10 +325,10 @@ def _render_login_form(pal: dict) -> None:
         if result["success"]:
             _reset_login_attempts()
             _load_user_chat(result["user"]["id"])
-            # Persist session in browser cookie so refresh keeps user logged in
+            # Persist session in browser cookie
             token = st.session_state.get("auth_tokens", {}).get("access_token")
             if token:
-                _set_auth_cookie(token)
+                _set_auth_cookie(token, remember=remember)
             st.rerun()
         else:
             _record_failed_login()
