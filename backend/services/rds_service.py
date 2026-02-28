@@ -122,9 +122,21 @@ def _exec_count(sql: str, params: tuple | None = None) -> int:
 
 # ── JWT helpers ─────────────────────────────────────────────────────────
 
-_JWT_SECRET = os.getenv("JWT_SECRET", Config.RDS_PASSWORD or "kr1sh1-s@@th1-s3cr3t")
+def _get_jwt_secret() -> str:
+    """Return JWT secret; never fall back to DB password or hardcoded value."""
+    secret = os.getenv("JWT_SECRET")
+    if secret:
+        return secret
+    # Auto-generate a persistent secret and warn
+    import secrets as _sec
+    _auto = _sec.token_hex(32)
+    logger.warning("JWT_SECRET not set — using auto-generated ephemeral secret. "
+                   "Set JWT_SECRET in .env for production!")
+    return _auto
+
+_JWT_SECRET = _get_jwt_secret()
 _JWT_ALGO = "HS256"
-_JWT_EXPIRY_DAYS = 7
+_JWT_EXPIRY_DAYS = 1  # access token: 1 day (was 7)
 
 
 def _create_tokens(user_id: str, email: str) -> dict:
@@ -854,11 +866,15 @@ class SupabaseManager:
         display_name = tg_user.get("first_name") or tg_user.get("username") or str(telegram_id)
         email = f"tg_{telegram_id}@telegram.local"
         try:
+            # Generate a random bcrypt hash so the password column is never a plaintext marker
+            import secrets as _sec
+            _random_pw = _sec.token_hex(32)
+            _tg_hash = bcrypt.hashpw(_random_pw.encode(), bcrypt.gensalt()).decode() if _bcrypt_available else _sec.token_hex(64)
             _exec(
                 """INSERT INTO profiles (id, full_name, email, password_hash, email_verified)
                    VALUES (%s, %s, %s, %s, TRUE)
                    ON CONFLICT (id) DO NOTHING""",
-                (pid, display_name, email, "telegram_user_no_password"),
+                (pid, display_name, email, _tg_hash),
             )
             _exec(
                 "UPDATE telegram_users SET profile_id = %s, updated_at = NOW() WHERE telegram_id = %s",

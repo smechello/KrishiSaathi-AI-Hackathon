@@ -10,6 +10,8 @@ Usage in any page::
 
 from __future__ import annotations
 
+import re
+import time
 import streamlit as st
 
 from backend.services.supabase_service import SupabaseManager
@@ -22,7 +24,43 @@ from frontend.components.theme import (
     icon,
 )
 
+# ── Rate limiting for login attempts ─────────────────────────────────────
+_MAX_LOGIN_ATTEMPTS = 5
+_LOCKOUT_SECONDS = 300  # 5 minutes
 
+def _check_rate_limit() -> tuple[bool, int]:
+    """Return (allowed, seconds_remaining). Uses session state."""
+    now = time.time()
+    attempts = st.session_state.get("_login_attempts", 0)
+    lockout_until = st.session_state.get("_login_lockout_until", 0)
+    if now < lockout_until:
+        return False, int(lockout_until - now)
+    return True, 0
+
+def _record_failed_login():
+    attempts = st.session_state.get("_login_attempts", 0) + 1
+    st.session_state["_login_attempts"] = attempts
+    if attempts >= _MAX_LOGIN_ATTEMPTS:
+        st.session_state["_login_lockout_until"] = time.time() + _LOCKOUT_SECONDS
+        st.session_state["_login_attempts"] = 0
+
+def _reset_login_attempts():
+    st.session_state["_login_attempts"] = 0
+    st.session_state.pop("_login_lockout_until", None)
+
+def _validate_password_strength(password: str) -> str | None:
+    """Return error message if password is weak, else None."""
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+    if not re.search(r"[A-Z]", password):
+        return "Password must contain at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return "Password must contain at least one lowercase letter."
+    if not re.search(r"[0-9]", password):
+        return "Password must contain at least one digit."
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return "Password must contain at least one special character."
+    return None
 # ═══════════════════════════════════════════════════════════════════════
 #  Public helpers
 # ═══════════════════════════════════════════════════════════════════════
@@ -169,12 +207,18 @@ def _render_login_form(pal: dict) -> None:
         if not email or not password:
             st.error("Please enter both email and password.")
             return
+        allowed, wait_secs = _check_rate_limit()
+        if not allowed:
+            st.error(f"🔒 Too many login attempts. Please wait {wait_secs} seconds.")
+            return
         with st.spinner("Signing in …"):
             result = SupabaseManager.sign_in(email.strip(), password)
         if result["success"]:
+            _reset_login_attempts()
             _load_user_chat(result["user"]["id"])
             st.rerun()
         else:
+            _record_failed_login()
             st.error(result["error"])
 
     # ── Resend verification button (when email-not-verified error) ──
@@ -202,7 +246,7 @@ def _render_signup_form(pal: dict) -> None:
         email     = st.text_input("Email address", placeholder="you@example.com",
                                   key="signup_email")
         password  = st.text_input("Password", type="password",
-                                  placeholder="Minimum 6 characters",
+                                  placeholder="Min 8 chars, upper/lower/digit/special",
                                   key="signup_password")
         password2 = st.text_input("Confirm password", type="password",
                                   placeholder="Re-enter password",
@@ -218,8 +262,9 @@ def _render_signup_form(pal: dict) -> None:
         if password != password2:
             st.error("Passwords do not match.")
             return
-        if len(password) < 6:
-            st.error("Password must be at least 6 characters.")
+        pw_err = _validate_password_strength(password)
+        if pw_err:
+            st.error(pw_err)
             return
         with st.spinner("Creating your account …"):
             result = SupabaseManager.sign_up(email.strip(), password, full_name.strip())
