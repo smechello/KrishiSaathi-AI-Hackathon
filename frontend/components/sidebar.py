@@ -164,6 +164,9 @@ def render_sidebar() -> str:
 
             if st.button("🚪 Sign Out", use_container_width=True, key="btn_logout"):
                 SupabaseManager.sign_out()
+                # Clear the persistent browser cookie
+                from frontend.components.auth import _clear_auth_cookie
+                _clear_auth_cookie()
                 st.session_state["messages"] = []
                 st.session_state.pop("_chat_loaded", None)
                 st.rerun()
