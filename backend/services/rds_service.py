@@ -218,6 +218,22 @@ CREATE TABLE IF NOT EXISTS admin_settings (
     id          TEXT PRIMARY KEY,
     settings    TEXT NOT NULL DEFAULT '{}'
 );
+
+CREATE TABLE IF NOT EXISTS telegram_users (
+    id              SERIAL PRIMARY KEY,
+    telegram_id     BIGINT NOT NULL UNIQUE,
+    profile_id      TEXT REFERENCES profiles(id) ON DELETE SET NULL,
+    username        TEXT,
+    first_name      TEXT DEFAULT '',
+    last_name       TEXT DEFAULT '',
+    language        TEXT DEFAULT 'en',
+    is_blocked      BOOLEAN NOT NULL DEFAULT FALSE,
+    total_messages  INTEGER NOT NULL DEFAULT 0,
+    last_active     TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tg_users_tid ON telegram_users(telegram_id);
 """
 
 
@@ -771,7 +787,150 @@ class SupabaseManager:
             counts["memories"] = _exec_count("SELECT COUNT(*) FROM memories")
         except Exception:
             pass
+        try:
+            counts["telegram_users"] = _exec_count("SELECT COUNT(*) FROM telegram_users")
+        except Exception:
+            counts["telegram_users"] = 0
         return counts
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  Telegram user management
+    # ═══════════════════════════════════════════════════════════════════
+
+    @classmethod
+    def tg_upsert_user(
+        cls,
+        telegram_id: int,
+        username: str | None = None,
+        first_name: str = "",
+        last_name: str = "",
+        language: str = "en",
+    ) -> dict | None:
+        """Create or update a Telegram user. Returns the row."""
+        cls._ensure()
+        try:
+            row = _exec(
+                """INSERT INTO telegram_users (telegram_id, username, first_name, last_name, language, last_active)
+                   VALUES (%s, %s, %s, %s, %s, NOW())
+                   ON CONFLICT (telegram_id) DO UPDATE SET
+                       username   = EXCLUDED.username,
+                       first_name = EXCLUDED.first_name,
+                       last_name  = EXCLUDED.last_name,
+                       last_active = NOW(),
+                       updated_at  = NOW()
+                   RETURNING *""",
+                (telegram_id, username, first_name, last_name, language),
+                fetch="one",
+            )
+            return row
+        except Exception as exc:
+            logger.warning("tg_upsert_user failed: %s", exc)
+            return None
+
+    @classmethod
+    def tg_get_user(cls, telegram_id: int) -> dict | None:
+        """Retrieve a Telegram user by their Telegram ID."""
+        try:
+            return _exec(
+                "SELECT * FROM telegram_users WHERE telegram_id = %s",
+                (telegram_id,),
+                fetch="one",
+            )
+        except Exception:
+            return None
+
+    @classmethod
+    def tg_get_profile_id(cls, telegram_id: int) -> str | None:
+        """Return the linked profile_id for a Telegram user, or create a virtual one."""
+        tg_user = cls.tg_get_user(telegram_id)
+        if not tg_user:
+            return None
+        if tg_user.get("profile_id"):
+            return tg_user["profile_id"]
+
+        # Create a virtual profile for this Telegram user
+        import uuid as _uuid
+        pid = f"tg_{telegram_id}"
+        display_name = tg_user.get("first_name") or tg_user.get("username") or str(telegram_id)
+        email = f"tg_{telegram_id}@telegram.local"
+        try:
+            _exec(
+                """INSERT INTO profiles (id, full_name, email, password_hash, email_verified)
+                   VALUES (%s, %s, %s, %s, TRUE)
+                   ON CONFLICT (id) DO NOTHING""",
+                (pid, display_name, email, "telegram_user_no_password"),
+            )
+            _exec(
+                "UPDATE telegram_users SET profile_id = %s, updated_at = NOW() WHERE telegram_id = %s",
+                (pid, telegram_id),
+            )
+            return pid
+        except Exception as exc:
+            logger.warning("tg_get_profile_id auto-create failed: %s", exc)
+            return pid  # Return it anyway; it may already exist
+
+    @classmethod
+    def tg_increment_messages(cls, telegram_id: int) -> None:
+        """Bump message count and last_active for a Telegram user."""
+        try:
+            _exec(
+                "UPDATE telegram_users SET total_messages = total_messages + 1, last_active = NOW(), updated_at = NOW() WHERE telegram_id = %s",
+                (telegram_id,),
+            )
+        except Exception:
+            pass
+
+    @classmethod
+    def tg_set_language(cls, telegram_id: int, language: str) -> None:
+        """Update preferred language for a Telegram user."""
+        try:
+            _exec(
+                "UPDATE telegram_users SET language = %s, updated_at = NOW() WHERE telegram_id = %s",
+                (language, telegram_id),
+            )
+        except Exception:
+            pass
+
+    @classmethod
+    def tg_set_blocked(cls, telegram_id: int, blocked: bool) -> None:
+        """Block or unblock a Telegram user."""
+        try:
+            _exec(
+                "UPDATE telegram_users SET is_blocked = %s, updated_at = NOW() WHERE telegram_id = %s",
+                (blocked, telegram_id),
+            )
+        except Exception:
+            pass
+
+    @classmethod
+    def admin_list_telegram_users(cls) -> list[dict]:
+        """List all Telegram users for the admin panel."""
+        try:
+            rows = _exec(
+                """SELECT id, telegram_id, profile_id, username, first_name, last_name,
+                          language, is_blocked, total_messages, last_active, created_at
+                   FROM telegram_users ORDER BY last_active DESC NULLS LAST""",
+                fetch="all",
+            )
+            return rows or []
+        except Exception as exc:
+            logger.warning("admin_list_telegram_users failed: %s", exc)
+            return []
+
+    @classmethod
+    def admin_delete_telegram_user(cls, telegram_id: int) -> bool:
+        """Delete a Telegram user and their linked data."""
+        try:
+            tg_user = cls.tg_get_user(telegram_id)
+            if tg_user and tg_user.get("profile_id"):
+                pid = tg_user["profile_id"]
+                _exec("DELETE FROM chat_history WHERE user_id = %s", (pid,))
+                _exec("DELETE FROM memories WHERE user_id = %s", (pid,))
+            _exec("DELETE FROM telegram_users WHERE telegram_id = %s", (telegram_id,))
+            return True
+        except Exception as exc:
+            logger.warning("admin_delete_telegram_user failed: %s", exc)
+            return False
 
     # ═══════════════════════════════════════════════════════════════════
     #  Admin settings
