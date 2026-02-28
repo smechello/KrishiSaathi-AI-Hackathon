@@ -25,9 +25,8 @@ class Config:
         EMAIL_PASSWORD: str | None = os.getenv("EMAIL_PASSWORD")
         SUPABASE_SERVICE_KEY: str | None = os.getenv("SUPABASE_SERVICE_KEY")
         APP_URL: str = os.getenv("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
-
-    # ── Telegram Bot ───────────────────────────────────────────────
-    TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
+        # ── Telegram Bot ───────────────────────────────────────────
+        TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
     else:
         GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
         GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
