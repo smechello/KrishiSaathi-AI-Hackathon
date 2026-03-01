@@ -164,6 +164,8 @@ def render_sidebar() -> str:
 
             if st.button("🚪 Sign Out", use_container_width=True, key="btn_logout"):
                 SupabaseManager.sign_out()
+                # Flag for cookie clearing on next render (auth page will inject the JS)
+                st.session_state["_pending_cookie_clear"] = True
                 st.session_state["messages"] = []
                 st.session_state.pop("_chat_loaded", None)
                 st.rerun()

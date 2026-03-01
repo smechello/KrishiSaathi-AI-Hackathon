@@ -80,9 +80,15 @@ POLLY_VOICES: dict[str, dict[str, str]] = {
     "hi": {"VoiceId": "Kajal", "Engine": "neural", "LanguageCode": "hi-IN"},
 }
 
-# Languages that don't have native Polly voices — will be TTS'd via Hindi
-# after translation.  The frontend handles translation before calling TTS.
+# Languages that don't have native Polly voices — use gTTS (Google TTS)
+# as a fallback.  gTTS natively supports all major Indian languages.
 POLLY_UNSUPPORTED = {"te", "ta", "kn", "ml", "mr", "bn", "gu", "pa"}
+
+# gTTS language codes (ISO 639-1, same as our app codes)
+GTTS_LANG_MAP: dict[str, str] = {
+    "te": "te", "ta": "ta", "kn": "kn", "ml": "ml",
+    "mr": "mr", "bn": "bn", "gu": "gu", "pa": "pa",
+}
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -128,6 +134,10 @@ class VoiceService:
         """
         if not text or not text.strip():
             return None
+
+        # ── gTTS fallback for Polly-unsupported Indian languages ──
+        if language in POLLY_UNSUPPORTED:
+            return _synthesize_gtts(text, language)
 
         voice_cfg = POLLY_VOICES.get(language, POLLY_VOICES["hi"])
 
@@ -250,14 +260,12 @@ class VoiceService:
         Returns
         -------
         tuple[str, bool]
-            (polly_lang_code, needs_translation)
-            If ``needs_translation`` is True, the caller should translate
-            the text to ``polly_lang_code`` before calling ``text_to_speech``.
+            (tts_lang_code, needs_translation)
+            With gTTS fallback, all Indian languages are now natively
+            supported so ``needs_translation`` is always ``False``.
         """
-        if app_lang in POLLY_VOICES:
-            return app_lang, False
-        # Unsupported → use Hindi voice (caller translates to Hindi)
-        return "hi", True
+        # All languages are now supported natively (Polly or gTTS)
+        return app_lang, False
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -358,6 +366,29 @@ def _cleanup_transcribe_job(tc, job_id: str) -> None:
         tc.delete_transcription_job(TranscriptionJobName=job_id)
     except Exception:
         pass
+
+
+def _synthesize_gtts(text: str, language: str) -> bytes | None:
+    """Synthesise speech using gTTS for languages without Polly voices.
+
+    gTTS natively supports Telugu, Tamil, Kannada, Malayalam, Marathi,
+    Bengali, Gujarati and Punjabi — always returns mp3 bytes.
+    """
+    try:
+        from gtts import gTTS as GoogleTTS
+        import io as _io
+
+        gtts_lang = GTTS_LANG_MAP.get(language, language)
+        tts = GoogleTTS(text=text, lang=gtts_lang, slow=False)
+        buf = _io.BytesIO()
+        tts.write_to_fp(buf)
+        buf.seek(0)
+        audio_bytes = buf.read()
+        logger.info("gTTS synthesis OK for lang=%s  %d bytes", language, len(audio_bytes))
+        return audio_bytes
+    except Exception as exc:
+        logger.error("gTTS synthesis failed for lang=%s: %s", language, exc)
+        return None
 
 
 # ── Module-level singleton ─────────────────────────────────────────────

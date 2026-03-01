@@ -45,7 +45,8 @@ st.set_page_config(page_title="KrishiSaathi — Admin", page_icon="🔒", layout
 _TABS = [
     "📊 Overview",
     "👥 Users",
-    "💬 Chat Logs",
+    "� Telegram",
+    "�💬 Chat Logs",
     "🧠 Memories",
     "📚 Knowledge Base",
     "⚙️ Configuration",
@@ -77,11 +78,20 @@ def _load_memories() -> list[dict]:
     return SupabaseManager.admin_get_all_memories(limit=2000)
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_telegram_users() -> list[dict]:
+    try:
+        return SupabaseManager.admin_list_telegram_users()
+    except Exception:
+        return []
+
+
 def _clear_all_caches() -> None:
     _load_counts.clear()
     _load_users.clear()
     _load_messages.clear()
     _load_memories.clear()
+    _load_telegram_users.clear()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -163,12 +173,13 @@ def _render_overview() -> None:
         users = _load_users()
 
     st.subheader("Key Metrics")
-    m1, m2, m3, m4, m5 = st.columns(5)
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Total Users", counts.get("users", len(users)))
     m2.metric("Total Messages", counts.get("messages", 0))
     m3.metric("Total Memories", counts.get("memories", 0))
     m4.metric("Registered", len(users))
-    m5.metric("Admin Emails", len(Config.ADMIN_EMAILS))
+    m5.metric("Telegram Users", counts.get("telegram_users", 0))
+    m6.metric("Admin Emails", len(Config.ADMIN_EMAILS))
 
     st.divider()
 
@@ -341,6 +352,133 @@ def _render_users() -> None:
                 if st.button("💣 Delete All Data", key=f"del_a_{uid}", type="primary"):
                     SupabaseManager.admin_delete_user_data(uid)
                     st.success("All data deleted"); _clear_all_caches(); st.rerun()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  TAB — Telegram Users
+# ═══════════════════════════════════════════════════════════════════════
+
+def _render_telegram() -> None:
+    p = get_palette(get_theme())
+
+    with st.spinner("Loading Telegram users…"):
+        tg_users = _load_telegram_users()
+
+    st.subheader(f"📱 Telegram Users ({len(tg_users)})")
+
+    if not tg_users:
+        st.info(
+            "No Telegram users yet. Share the bot link: "
+            "[t.me/Krishi_Saathi_bot](https://t.me/Krishi_Saathi_bot)"
+        )
+        return
+
+    # Summary metrics
+    total_msgs = sum(u.get("total_messages", 0) for u in tg_users)
+    active_count = sum(1 for u in tg_users if not u.get("is_blocked", False))
+    blocked_count = sum(1 for u in tg_users if u.get("is_blocked", False))
+
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    mc1.metric("Total TG Users", len(tg_users))
+    mc2.metric("Active", active_count)
+    mc3.metric("Blocked", blocked_count)
+    mc4.metric("Total TG Messages", total_msgs)
+
+    st.divider()
+
+    # Filter
+    filter_col1, filter_col2 = st.columns([1, 3])
+    with filter_col1:
+        show_filter = st.selectbox(
+            "Filter",
+            ["All", "Active", "Blocked"],
+            key="tg_filter",
+        )
+
+    filtered = tg_users
+    if show_filter == "Active":
+        filtered = [u for u in tg_users if not u.get("is_blocked")]
+    elif show_filter == "Blocked":
+        filtered = [u for u in tg_users if u.get("is_blocked")]
+
+    # User list
+    for tg_user in filtered:
+        tid = tg_user.get("telegram_id", "?")
+        username = tg_user.get("username") or "—"
+        first_name = tg_user.get("first_name", "") or ""
+        last_name = tg_user.get("last_name", "") or ""
+        display = f"{first_name} {last_name}".strip() or username
+        lang = tg_user.get("language", "en")
+        msgs = tg_user.get("total_messages", 0)
+        blocked = tg_user.get("is_blocked", False)
+        last_active = _ago(tg_user.get("last_active"))
+        joined = _date_str(tg_user.get("created_at"))
+        profile_id = tg_user.get("profile_id") or "—"
+
+        status_badge = "🔴 Blocked" if blocked else "🟢 Active"
+        header = f"{display}  (@{username})  —  {status_badge}  |  💬 {msgs} msgs  |  🕐 {last_active}"
+
+        with st.expander(header, expanded=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"""
+| Field | Value |
+|---|---|
+| **Telegram ID** | `{tid}` |
+| **Username** | @{username} |
+| **Name** | {display} |
+| **Language** | {lang} |
+| **Profile ID** | `{profile_id}` |
+| **Joined** | {joined} |
+| **Last Active** | {last_active} |
+| **Messages** | {msgs} |
+""")
+
+            with col2:
+                st.markdown("**Actions**")
+
+                # Block / Unblock toggle
+                if blocked:
+                    if st.button(f"✅ Unblock", key=f"unblock_{tid}", use_container_width=True):
+                        SupabaseManager.tg_set_blocked(tid, False)
+                        st.success(f"Unblocked {display}")
+                        _load_telegram_users.clear()
+                        st.rerun()
+                else:
+                    if st.button(f"🚫 Block", key=f"block_{tid}", use_container_width=True):
+                        SupabaseManager.tg_set_blocked(tid, True)
+                        st.warning(f"Blocked {display}")
+                        _load_telegram_users.clear()
+                        st.rerun()
+
+                # View chat history (if profile linked)
+                if profile_id and profile_id != "—":
+                    try:
+                        user_msgs = SupabaseManager.admin_get_all_chat_history(user_id=profile_id, limit=20)
+                        if user_msgs:
+                            st.markdown(f"**Recent Messages ({len(user_msgs)}):**")
+                            for msg in user_msgs[:10]:
+                                role = msg.get("role", "?")
+                                content = str(msg.get("content", ""))[:200]
+                                ts = _date_str(msg.get("created_at"))
+                                icon = "👤" if role == "user" else "🌾"
+                                st.caption(f"{icon} {ts}: {content}")
+                    except Exception:
+                        pass
+
+                # Delete user
+                st.markdown("---")
+                if st.button(
+                    f"🗑️ Delete User & Data",
+                    key=f"del_tg_{tid}",
+                    type="secondary",
+                    use_container_width=True,
+                ):
+                    SupabaseManager.admin_delete_telegram_user(tid)
+                    st.success(f"Deleted Telegram user {display}")
+                    _load_telegram_users.clear()
+                    _clear_all_caches()
+                    st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1110,6 +1248,8 @@ def main() -> None:
         _render_overview()
     elif "Users" in selected:
         _render_users()
+    elif "Telegram" in selected:
+        _render_telegram()
     elif "Chat Logs" in selected:
         _render_chats()
     elif "Memories" in selected:

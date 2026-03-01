@@ -25,6 +25,8 @@ class Config:
         EMAIL_PASSWORD: str | None = os.getenv("EMAIL_PASSWORD")
         SUPABASE_SERVICE_KEY: str | None = os.getenv("SUPABASE_SERVICE_KEY")
         APP_URL: str = os.getenv("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
+        # ── Telegram Bot ───────────────────────────────────────────
+        TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
     else:
         GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
         GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
@@ -36,7 +38,7 @@ class Config:
         EMAIL_PASSWORD = st.secrets.get("EMAIL_PASSWORD")
         SUPABASE_SERVICE_KEY = st.secrets.get("SUPABASE_SERVICE_KEY")
         APP_URL = st.secrets.get("APP_URL", "https://krishisaathi-ai-hackathon.streamlit.app")
-
+        TELEGRAM_BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
     # ── Database Backend ───────────────────────────────────────────────
     #  "rds"      → Amazon RDS PostgreSQL (AWS-native, recommended)
     #  "supabase" → Supabase (legacy, hosted Postgres + GoTrue auth)

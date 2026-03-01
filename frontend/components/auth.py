@@ -10,7 +10,12 @@ Usage in any page::
 
 from __future__ import annotations
 
+import re
+import time
+import string
+import secrets
 import streamlit as st
+import streamlit.components.v1 as components
 
 from backend.services.supabase_service import SupabaseManager
 from backend.config import Config
@@ -22,7 +27,129 @@ from frontend.components.theme import (
     icon,
 )
 
+# ── Cookie-based persistent session ───────────────────────────────────
+_COOKIE_NAME = "ks_session"
+_COOKIE_MAX_AGE = 86400  # 24 hours in seconds
 
+
+def _set_auth_cookie(token: str, remember: bool = True) -> None:
+    """Inject JS to set a session cookie in the browser.
+
+    If *remember* is True, cookie persists for 24 h.
+    If False, it's a session cookie (cleared when the browser closes).
+    """
+    if remember:
+        age_part = f"max-age={_COOKIE_MAX_AGE};"
+    else:
+        age_part = ""  # session cookie — no max-age
+    components.html(
+        f"""<script>
+        document.cookie = "{_COOKIE_NAME}={token}; path=/; {age_part} SameSite=Lax; Secure";
+        </script>""",
+        height=0, width=0,
+    )
+
+
+def _inject_clear_cookie_js() -> None:
+    """Inject JS to delete the session cookie (called on rendered page)."""
+    components.html(
+        f"""<script>
+        document.cookie = "{_COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax; Secure";
+        </script>""",
+        height=0, width=0,
+    )
+
+
+def _get_auth_cookie() -> str | None:
+    """Read the session cookie via st.context.cookies."""
+    try:
+        cookies = st.context.cookies
+        return cookies.get(_COOKIE_NAME)
+    except Exception:
+        return None
+
+
+def _restore_from_cookie() -> bool:
+    """Try to restore session from browser cookie. Returns True on success."""
+    # If user just signed out, don't restore from cookie
+    if st.session_state.get("_pending_cookie_clear"):
+        return False
+    token = _get_auth_cookie()
+    if not token:
+        return False
+    # Validate the JWT
+    from backend.services.rds_service import _decode_token, _create_tokens, _exec
+    payload = _decode_token(token)
+    if not payload or payload.get("type") != "access":
+        return False
+    # Check user still exists
+    try:
+        row = _exec(
+            "SELECT id, full_name, email FROM profiles WHERE id = %s",
+            (payload["sub"],), fetch="one",
+        )
+    except Exception:
+        return False
+    if not row:
+        return False
+    user_dict = {"id": row["id"], "email": row["email"], "full_name": row["full_name"]}
+    tokens = _create_tokens(row["id"], row["email"])
+    st.session_state["auth_tokens"] = tokens
+    st.session_state["auth_user"] = user_dict
+    st.session_state["authenticated"] = True
+    return True
+
+
+# ── Password generator ─────────────────────────────────────────────
+def _generate_strong_password(length: int = 14) -> str:
+    """Generate a random password that satisfies all complexity rules."""
+    upper = secrets.choice(string.ascii_uppercase)
+    lower = secrets.choice(string.ascii_lowercase)
+    digit = secrets.choice(string.digits)
+    special = secrets.choice("!@#$%&*?")
+    rest = [secrets.choice(string.ascii_letters + string.digits + "!@#$%&*?")
+            for _ in range(length - 4)]
+    pwd_chars = list(upper + lower + digit + special) + rest
+    secrets.SystemRandom().shuffle(pwd_chars)
+    return "".join(pwd_chars)
+
+# ── Rate limiting for login attempts ─────────────────────────────────────
+_MAX_LOGIN_ATTEMPTS = 5
+_LOCKOUT_SECONDS = 300  # 5 minutes
+
+def _check_rate_limit() -> tuple[bool, int]:
+    """Return (allowed, seconds_remaining). Uses session state."""
+    now = time.time()
+    attempts = st.session_state.get("_login_attempts", 0)
+    lockout_until = st.session_state.get("_login_lockout_until", 0)
+    if now < lockout_until:
+        return False, int(lockout_until - now)
+    return True, 0
+
+def _record_failed_login():
+    attempts = st.session_state.get("_login_attempts", 0) + 1
+    st.session_state["_login_attempts"] = attempts
+    if attempts >= _MAX_LOGIN_ATTEMPTS:
+        st.session_state["_login_lockout_until"] = time.time() + _LOCKOUT_SECONDS
+        st.session_state["_login_attempts"] = 0
+
+def _reset_login_attempts():
+    st.session_state["_login_attempts"] = 0
+    st.session_state.pop("_login_lockout_until", None)
+
+def _validate_password_strength(password: str) -> str | None:
+    """Return error message if password is weak, else None."""
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+    if not re.search(r"[A-Z]", password):
+        return "Password must contain at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return "Password must contain at least one lowercase letter."
+    if not re.search(r"[0-9]", password):
+        return "Password must contain at least one digit."
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return "Password must contain at least one special character."
+    return None
 # ═══════════════════════════════════════════════════════════════════════
 #  Public helpers
 # ═══════════════════════════════════════════════════════════════════════
@@ -62,7 +189,10 @@ def require_auth() -> dict:
 
     # Attempt to restore a previously-stored session
     if not st.session_state.get("authenticated"):
-        SupabaseManager.restore_session()
+        # First try st.session_state (same tab), then browser cookie (refresh/new tab)
+        restored = SupabaseManager.restore_session()
+        if not restored:
+            _restore_from_cookie()
 
     if st.session_state.get("authenticated"):
         return st.session_state["auth_user"]
@@ -92,6 +222,21 @@ def render_auth_page() -> None:
     # Global theme + auth-specific CSS
     inject_global_css(theme)
     _inject_auth_css(pal, theme)
+
+    # ── Hide sidebar & page navigation on the login screen ────────
+    st.markdown(
+        """<style>
+        [data-testid="stSidebar"] { display: none !important; }
+        [data-testid="stSidebarNav"] { display: none !important; }
+        header[data-testid="stHeader"] { display: none !important; }
+        [data-testid="stSidebarCollapsedControl"] { display: none !important; }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+
+    # ── Clear cookie if user just signed out (JS runs on THIS render) ──
+    if st.session_state.pop("_pending_cookie_clear", False):
+        _inject_clear_cookie_js()
 
     # ── Handle verification / reset links from email ───────────────
     params = st.query_params
@@ -159,6 +304,8 @@ def _render_login_form(pal: dict) -> None:
         password = st.text_input("Password", type="password",
                                  placeholder="Enter your password",
                                  key="login_password")
+        remember = st.checkbox("🔒 Remember me for 24 hours", value=True,
+                               key="login_remember")
         col1, col2 = st.columns([3, 1])
         with col1:
             submitted = st.form_submit_button(
@@ -169,12 +316,22 @@ def _render_login_form(pal: dict) -> None:
         if not email or not password:
             st.error("Please enter both email and password.")
             return
+        allowed, wait_secs = _check_rate_limit()
+        if not allowed:
+            st.error(f"🔒 Too many login attempts. Please wait {wait_secs} seconds.")
+            return
         with st.spinner("Signing in …"):
             result = SupabaseManager.sign_in(email.strip(), password)
         if result["success"]:
+            _reset_login_attempts()
             _load_user_chat(result["user"]["id"])
+            # Persist session in browser cookie
+            token = st.session_state.get("auth_tokens", {}).get("access_token")
+            if token:
+                _set_auth_cookie(token, remember=remember)
             st.rerun()
         else:
+            _record_failed_login()
             st.error(result["error"])
 
     # ── Resend verification button (when email-not-verified error) ──
@@ -196,13 +353,24 @@ def _render_signup_form(pal: dict) -> None:
         f'<p class="ks-auth-desc">Create a free account to get started.</p>',
         unsafe_allow_html=True,
     )
+
+    # ── Password generator ───────────────────────────────────────────
+    if st.button("🔐 Suggest Strong Password", key="btn_gen_pw"):
+        suggested = _generate_strong_password()
+        st.session_state["_suggested_pw"] = suggested
+    suggested_pw = st.session_state.get("_suggested_pw")
+    if suggested_pw:
+        st.code(suggested_pw, language=None)
+        st.caption("✅ Copy this password and paste it below. "
+                   "It meets all security requirements.")
+
     with st.form("ks_signup_form", clear_on_submit=False):
         full_name = st.text_input("Full name", placeholder="Your name",
                                   key="signup_name")
         email     = st.text_input("Email address", placeholder="you@example.com",
                                   key="signup_email")
         password  = st.text_input("Password", type="password",
-                                  placeholder="Minimum 6 characters",
+                                  placeholder="Min 8 chars, upper/lower/digit/special",
                                   key="signup_password")
         password2 = st.text_input("Confirm password", type="password",
                                   placeholder="Re-enter password",
@@ -218,8 +386,9 @@ def _render_signup_form(pal: dict) -> None:
         if password != password2:
             st.error("Passwords do not match.")
             return
-        if len(password) < 6:
-            st.error("Password must be at least 6 characters.")
+        pw_err = _validate_password_strength(password)
+        if pw_err:
+            st.error(pw_err)
             return
         with st.spinner("Creating your account …"):
             result = SupabaseManager.sign_up(email.strip(), password, full_name.strip())
@@ -233,6 +402,9 @@ def _render_signup_form(pal: dict) -> None:
             else:
                 st.success("✅ Account created — you're signed in!")
                 _load_user_chat(result["user"]["id"])
+                token = st.session_state.get("auth_tokens", {}).get("access_token")
+                if token:
+                    _set_auth_cookie(token)
                 st.rerun()
         else:
             st.error(result["error"])
@@ -327,7 +499,7 @@ def _handle_password_reset(token: str, pal: dict) -> None:
         with st.form("ks_reset_password_form", clear_on_submit=True):
             new_password  = st.text_input(
                 "New password", type="password",
-                placeholder="Minimum 6 characters",
+                placeholder="Min 8 chars, upper/lower/digit/special",
             )
             confirm_password = st.text_input(
                 "Confirm new password", type="password",
@@ -344,8 +516,9 @@ def _handle_password_reset(token: str, pal: dict) -> None:
             if new_password != confirm_password:
                 st.error("Passwords do not match.")
                 return
-            if len(new_password) < 6:
-                st.error("Password must be at least 6 characters.")
+            pw_err = _validate_password_strength(new_password)
+            if pw_err:
+                st.error(pw_err)
                 return
 
             with st.spinner("Resetting password …"):

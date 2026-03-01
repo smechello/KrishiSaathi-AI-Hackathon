@@ -31,7 +31,7 @@ from frontend.components.theme import render_page_header, icon, get_theme, get_p
 from frontend.components.auth import require_auth  # noqa: E402
 from backend.services.supabase_service import SupabaseManager  # noqa: E402
 from backend.services.memory_engine import get_memory_engine  # noqa: E402
-from frontend.components.voice_input import render_voice_input, render_voice_output  # noqa: E402
+from frontend.components.voice_input import render_voice_input  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -167,8 +167,8 @@ def main() -> None:
             {"role": "assistant", "content": greeting, "sources": None}
         )
 
-    # ── Render chat history ────────────────────────────────────────────
-    render_chat_history(st.session_state["messages"])
+    # ── Render chat history (with persistent TTS buttons) ─────────────
+    render_chat_history(st.session_state["messages"], language=lang)
 
     # ── Backend ────────────────────────────────────────────────────────
     app = get_backend()
@@ -176,18 +176,17 @@ def main() -> None:
     # ── Check for pending query from Quick Actions ─────────────────────
     pending = st.session_state.pop("pending_query", None)
 
-    # ── Voice + Text input area ────────────────────────────────────────
-    vcol, tcol = st.columns([1, 11])
-    with vcol:
-        voice_text = render_voice_input(language=lang, key_suffix="main")
-    with tcol:
-        user_input = st.chat_input(
-            placeholder=_ui(lang, "input_placeholder"),
-            key="chat_input",
-        )
+    # ── Voice input (mic button) ───────────────────────────────────────
+    voice_text = render_voice_input(language=lang, key_suffix="main")
 
-    # Use pending quick-action → voice → typed input (priority order)
+    # ── Chat text input (top-level → pinned to bottom) ────────────────
+    user_input = st.chat_input(
+        placeholder=_ui(lang, "input_placeholder"),
+    )
+
+    # Use typed → voice → pending quick-action (priority order)
     query = user_input or voice_text or pending
+    is_voice_query = bool(voice_text and query == voice_text)
     if not query:
         return
 
@@ -253,12 +252,17 @@ def main() -> None:
                 unsafe_allow_html=True,
             )
 
-        # 🔊 Listen button for TTS playback
-        render_voice_output(
-            text=response_text,
-            language=lang,
-            key_suffix=f"resp_{len(st.session_state.get('messages', []))}",
-        )
+        # Auto-play TTS for voice-originated queries
+        if is_voice_query and response_text:
+            try:
+                from backend.services.voice_service import voice
+                _tts_bytes = voice.text_to_speech(
+                    text=response_text, language=lang, output_format="mp3",
+                )
+                if _tts_bytes:
+                    st.audio(_tts_bytes, format="audio/mp3", autoplay=True)
+            except Exception as _tts_exc:
+                logger.warning("Auto TTS failed: %s", _tts_exc)
 
     # ── Save assistant message ─────────────────────────────────────────
     st.session_state["messages"].append(

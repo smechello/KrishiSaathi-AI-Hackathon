@@ -136,6 +136,17 @@ def _ui(lang: str, key: str) -> str:
     return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _t(text: str, lang: str) -> str:
+    """Translate an English string to the user's language (cached)."""
+    if not text or lang == "en":
+        return text
+    try:
+        return translator.from_english(text, dest=lang)
+    except Exception:
+        return text
+
+
 # ── Cached resources ───────────────────────────────────────────────────
 
 @st.cache_resource(show_spinner="Loading market data …")
@@ -259,26 +270,26 @@ def _render_summary_kpis(
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric(label="🌾 Crops Tracked", value=len(all_crops))
+        st.metric(label=f"🌾 {_t('Crops Tracked', lang)}", value=len(all_crops))
     with col2:
-        st.metric(label="🏪 Mandis Covered", value=len(all_markets))
+        st.metric(label=f"🏪 {_t('Mandis Covered', lang)}", value=len(all_markets))
     with col3:
         if all_prices:
             top = max(all_prices, key=lambda p: p.get("price_per_quintal", 0))
             st.metric(
-                label="📈 Highest Price",
+                label=f"📈 {_t('Highest Price', lang)}",
                 value=f"₹{top['price_per_quintal']:,}",
-                delta=top.get("crop", ""),
+                delta=_t(top.get("crop", ""), lang),
             )
         else:
-            st.metric(label="📈 Highest Price", value="—")
+            st.metric(label=f"📈 {_t('Highest Price', lang)}", value="—")
     with col4:
         # Count unique crops with non-null MSP (deduplicate short/long names)
         seen: set[int] = set()
         for v in msp_map.values():
             if v is not None:
                 seen.add(v)
-        st.metric(label="🏛️ MSP Crops", value=len(seen))
+        st.metric(label=f"🏛️ {_t('MSP Crops', lang)}", value=len(seen))
 
     st.divider()
 
@@ -361,9 +372,9 @@ def _render_price_comparison(
         if best.get("market"):
             bcol1, bcol2, bcol3 = st.columns(3)
             with bcol1:
-                st.metric("Best Market", best["market"])
+                st.metric(_t("Best Market", lang), best["market"])
             with bcol2:
-                st.metric("Price", f"₹{best.get('price_per_quintal', '?'):,}")
+                st.metric(_t("Price", lang), f"₹{best.get('price_per_quintal', '?'):,}")
             with bcol3:
                 msp = msp_map.get(selected_crop)
                 st.metric(_ui(lang, "msp_label"), f"₹{msp:,}" if msp else "N/A")
@@ -372,7 +383,7 @@ def _render_price_comparison(
             if intel:
                 _render_crop_intel(intel, lang)
         else:
-            st.info(best.get("recommendation", _ui(lang, "no_data")))
+            st.info(_t(best.get("recommendation", ""), lang) or _ui(lang, "no_data"))
 
 
 def _render_crop_intel(intel: dict, lang: str) -> None:
@@ -386,20 +397,20 @@ def _render_crop_intel(intel: dict, lang: str) -> None:
         trend = intel.get("price_trend", "")
 
         if peak:
-            st.markdown(f"**Peak Arrival:** {', '.join(peak)}")
+            st.markdown(f"**{_t('Peak Arrival', lang)}:** {', '.join(peak)}")
         if lean:
-            st.markdown(f"**Lean Period (Higher Prices):** {', '.join(lean)}")
+            st.markdown(f"**{_t('Lean Period (Higher Prices)', lang)}:** {', '.join(lean)}")
         if trend:
-            st.info(f"📊 **Trend:** {trend}")
+            st.info(f"📊 **{_t('Trend', lang)}:** {_t(trend, lang)}")
 
     with col_b:
         st.markdown(f"#### {_ui(lang, 'storage_header')}")
         advisory = intel.get("storage_advisory", "")
         if advisory:
-            st.markdown(advisory)
+            st.markdown(_t(advisory, lang))
         major = intel.get("major_markets", [])
         if major:
-            st.markdown(f"**All Markets:** {', '.join(major)}")
+            st.markdown(f"**{_t('All Markets', lang)}:** {', '.join(major)}")
 
 
 # ── Tab 2: Price Trends ───────────────────────────────────────────────
@@ -450,7 +461,7 @@ def _render_price_trends(
             x=df_trend["date"],
             y=df_trend["price"],
             mode="lines+markers",
-            name=f"{crop} Price",
+            name=f"{_t(crop, lang)} {_t('Price', lang)}",
             line=dict(color="#2e7d32", width=3),
             marker=dict(size=8),
             hovertemplate="₹%{y:,.0f}<br>%{x|%d %b}<extra></extra>",
@@ -466,8 +477,8 @@ def _render_price_trends(
             )
 
         fig.update_layout(
-            xaxis_title="Date",
-            yaxis_title="Price (₹/quintal)",
+            xaxis_title=_t("Date", lang),
+            yaxis_title=_t("Price (₹/quintal)", lang),
             hovermode="x unified",
             height=400,
             margin=dict(l=20, r=20, t=30, b=20),
@@ -479,7 +490,7 @@ def _render_price_trends(
     except ImportError:
         st.line_chart(df_trend.set_index("date")["price"], height=350)
         if msp:
-            st.caption(f"MSP reference: ₹{msp:,} / quintal")
+            st.caption(f"{_t('MSP reference', lang)}: ₹{msp:,} / {_t('quintal', lang)}")
 
     # ── Prediction ─────────────────────────────────────────────────────
     st.subheader(f"🔮 {_ui(lang, 'predict_header')}")
@@ -490,21 +501,21 @@ def _render_price_trends(
         current_prices = agent.get_current_prices(crop)
         if current_prices:
             current = current_prices[0].get("price_per_quintal", 0)
-            st.metric("Current Price", f"₹{current:,}")
+            st.metric(_t("Current Price", lang), f"₹{current:,}")
         else:
-            st.metric("Current Price", "—")
+            st.metric(_t("Current Price", lang), "—")
     with pcol2:
         predicted = pred.get("predicted_price", 0)
-        st.metric("Predicted (7-day)", f"₹{predicted:,.0f}")
+        st.metric(_t("Predicted (7-day)", lang), f"₹{predicted:,.0f}")
     with pcol3:
         st.metric(_ui(lang, "msp_label"), f"₹{msp:,}" if msp else "N/A")
 
-    st.caption(f"ℹ️ {pred.get('note', '')}")
+    st.caption(f"ℹ️ {_t(pred.get('note', ''), lang)}")
 
-    # ── Crop intelligence panel ────────────────────────────────────────
+    # ── Crop intelligence panel ──────────────────────────────────────
     intel = _match_intel(crop, intel_map)
     if intel:
-        with st.expander(f"📋 {crop} — Market Intelligence", expanded=False):
+        with st.expander(f"📋 {_t(crop, lang)} — {_t('Market Intelligence', lang)}", expanded=False):
             _render_crop_intel(intel, lang)
 
 
@@ -577,13 +588,13 @@ def _render_ai_advisor(
 
                 if sources:
                     src_str = " · ".join(f"`{s}`" for s in sources)
-                    st.caption(f"📚 Sources: {src_str}")
+                    st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
 
                 st.caption(f"⏱️ {elapsed:.1f}s")
 
             except Exception as exc:
                 logger.error("Market advisor error: %s", exc, exc_info=True)
-                st.error(f"Analysis failed: {exc}")
+                st.error(f"{_t('Analysis failed', lang)}: {exc}")
 
     elif ask_btn and not query:
         st.warning(_ui(lang, "no_data"))
@@ -615,7 +626,7 @@ def _render_ai_advisor(
     }
 
     qs = quick_qs.get(lang, quick_qs["en"])
-    st.markdown("**💡 Quick Questions:**")
+    st.markdown(f"**💡 {_t('Quick Questions', lang)}:**")
     cols = st.columns(len(qs))
     for i, (col, q) in enumerate(zip(cols, qs)):
         with col:

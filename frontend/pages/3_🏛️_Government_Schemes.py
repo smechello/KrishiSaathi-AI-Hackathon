@@ -143,6 +143,17 @@ def _ui(lang: str, key: str) -> str:
     return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _t(text: str, lang: str) -> str:
+    """Translate arbitrary English text to *lang*; cached 1 h."""
+    if not text or lang == "en":
+        return text
+    try:
+        return translator.from_english(text, dest=lang)
+    except Exception:
+        return text
+
+
 # ── Cached resources ───────────────────────────────────────────────────
 
 @st.cache_resource(show_spinner="Loading scheme data …")
@@ -191,13 +202,13 @@ def main() -> None:
 
     kc1, kc2, kc3, kc4 = st.columns(4)
     with kc1:
-        st.metric("📋 Total Schemes", len(schemes))
+        st.metric(f"📋 {_t('Total Schemes', lang)}", len(schemes))
     with kc2:
-        st.metric("🏛️ Telangana State", state_count)
+        st.metric(f"🏛️ {_t('Telangana State', lang)}", state_count)
     with kc3:
-        st.metric("🇮🇳 Central Govt", central_count)
+        st.metric(f"🇮🇳 {_t('Central Govt', lang)}", central_count)
     with kc4:
-        st.metric("✅ Active Now", active_count)
+        st.metric(f"✅ {_t('Active Now', lang)}", active_count)
     st.divider()
 
     # ── Tabs ───────────────────────────────────────────────────────────
@@ -270,9 +281,9 @@ def _render_scheme_card(scheme: dict, lang: str) -> None:
     s_type = scheme.get("type", "")
     active = scheme.get("active", True)
 
-    type_badge = f'<span class="ks-badge ks-badge-state">{icon("scheme", size=14, color=p["primary"])} State</span>' if s_type == "state" else f'<span class="ks-badge ks-badge-central">{icon("shield", size=14, color=p["info"])} Central</span>'
+    type_badge = f'<span class="ks-badge ks-badge-state">{icon("scheme", size=14, color=p["primary"])} {_t("State", lang)}</span>' if s_type == "state" else f'<span class="ks-badge ks-badge-central">{icon("shield", size=14, color=p["info"])} {_t("Central", lang)}</span>'
     status_cls = "ks-badge-active" if active else "ks-badge-inactive"
-    status_text = "Active" if active else "Inactive"
+    status_text = _t("Active", lang) if active else _t("Inactive", lang)
 
     benefits = scheme.get("benefits", {})
     if isinstance(benefits, dict):
@@ -282,31 +293,31 @@ def _render_scheme_card(scheme: dict, lang: str) -> None:
         benefit_amount = str(benefits)
         benefit_freq = ""
 
-    with st.expander(f"**{name}**  —  {benefit_amount}", expanded=False):
+    with st.expander(f"**{_t(name, lang)}**  —  {_t(str(benefit_amount), lang)}", expanded=False):
         st.markdown(f'{type_badge} <span class="ks-badge {status_cls}">{status_text}</span>', unsafe_allow_html=True)
-        st.markdown(f"_{scheme.get('description', '')}_")
+        st.markdown(f"_{_t(scheme.get('description', ''), lang)}_")
 
         col1, col2 = st.columns(2)
 
         with col1:
             # Benefits
             st.markdown(f"#### 💰 {_ui(lang, 'benefit')}")
-            st.markdown(f"**Amount:** {benefit_amount}")
+            st.markdown(f"**{_t('Amount', lang)}:** {_t(str(benefit_amount), lang)}")
             if benefit_freq:
-                st.markdown(f"**Frequency:** {benefit_freq}")
+                st.markdown(f"**{_t('Frequency', lang)}:** {_t(benefit_freq, lang)}")
             if isinstance(benefits, dict) and benefits.get("mode"):
-                st.markdown(f"**Mode:** {benefits['mode']}")
+                st.markdown(f"**{_t('Mode', lang)}:** {_t(benefits['mode'], lang)}")
 
             # Eligibility
             st.markdown(f"#### ✅ {_ui(lang, 'eligibility')}")
             elig = scheme.get("eligibility", {})
             if isinstance(elig, dict):
                 for k, v in elig.items():
-                    label = k.replace("_", " ").title()
-                    st.markdown(f"- **{label}:** {v}")
+                    label = _t(k.replace("_", " ").title(), lang)
+                    st.markdown(f"- **{label}:** {_t(str(v), lang)}")
             elif isinstance(elig, list):
                 for item in elig:
-                    st.markdown(f"- {item}")
+                    st.markdown(f"- {_t(str(item), lang)}")
 
         with col2:
             # Documents
@@ -314,15 +325,15 @@ def _render_scheme_card(scheme: dict, lang: str) -> None:
             docs = scheme.get("documents_required", scheme.get("documents", []))
             if docs:
                 for doc in docs:
-                    st.markdown(f"- {doc}")
+                    st.markdown(f"- {_t(doc, lang)}")
             else:
-                st.markdown("- Contact local office")
+                st.markdown(f"- {_t('Contact local office', lang)}")
 
             # Application
             st.markdown(f"#### 📝 {_ui(lang, 'how_to_apply')}")
             process = scheme.get("application_process", "")
             if process:
-                st.markdown(process)
+                st.markdown(_t(process, lang))
 
             # Links
             portal = scheme.get("portal", "")
@@ -370,7 +381,7 @@ def _render_eligibility(agent: SchemeAgent, schemes: list[dict], lang: str) -> N
             min_value=0, max_value=10000000, value=200000, step=50000,
             key="elig_income",
         )
-        has_land = st.checkbox("I own agricultural land", value=True, key="elig_has_land")
+        has_land = st.checkbox(_t("I own agricultural land", lang), value=True, key="elig_has_land")
 
     check_btn = st.button(_ui(lang, "elig_btn"), type="primary", use_container_width=True, key="btn_elig")
 
@@ -412,12 +423,12 @@ def _render_eligibility(agent: SchemeAgent, schemes: list[dict], lang: str) -> N
                 eligible_schemes.append(scheme)
 
         if eligible_schemes:
-            st.success(f"🎉 You may be eligible for **{len(eligible_schemes)}** schemes!")
+            st.success(_t(f"🎉 You may be eligible for {len(eligible_schemes)} schemes!", lang))
             st.subheader(f"📋 {_ui(lang, 'elig_result')}")
             for scheme in eligible_schemes:
                 _render_scheme_card(scheme, lang)
         else:
-            st.warning("No matching schemes found. Try adjusting your profile or check with your local agriculture office.")
+            st.warning(_t("No matching schemes found. Try adjusting your profile or check with your local agriculture office.", lang))
 
 
 # ── Tab 3: AI Scheme Advisor ──────────────────────────────────────────
@@ -477,12 +488,12 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
 
                 if sources:
                     src_str = " · ".join(f"`{s}`" for s in sources)
-                    st.caption(f"📚 Sources: {src_str}")
+                    st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
                 st.caption(f"⏱️ {elapsed:.1f}s")
 
             except Exception as exc:
                 logger.error("Scheme advisor error: %s", exc, exc_info=True)
-                st.error(f"Query failed: {exc}")
+                st.error(f"{_t('Query failed', lang)}: {exc}")
 
     elif ask_btn and not query:
         st.warning(_ui(lang, "no_results"))
@@ -514,7 +525,7 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
     }
 
     qs = quick_qs.get(lang, quick_qs["en"])
-    st.markdown("**💡 Quick Questions:**")
+    st.markdown(f"**💡 {_t('Quick Questions', lang)}:**")
     cols = st.columns(len(qs))
     for i, (col, q) in enumerate(zip(cols, qs)):
         with col:

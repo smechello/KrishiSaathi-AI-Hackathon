@@ -72,14 +72,23 @@ def inject_chat_css() -> None:
     st.markdown(css, unsafe_allow_html=True)
 
 
-def render_message(role: str, content: str, sources: list[str] | None = None) -> None:
+def render_message(
+    role: str,
+    content: str,
+    sources: list[str] | None = None,
+    *,
+    language: str | None = None,
+    tts_key: str | None = None,
+) -> None:
     """Render a single chat message.
 
     Parameters
     ----------
-    role    : "user" or "assistant"
-    content : The message text (supports Markdown).
-    sources : Optional list of source labels (only for assistant messages).
+    role     : "user" or "assistant"
+    content  : The message text (supports Markdown).
+    sources  : Optional list of source labels (only for assistant messages).
+    language : App language code — enables a persistent 🔊 Listen button.
+    tts_key  : Unique key suffix for the TTS button widget.
     """
     p = get_palette(get_theme())
 
@@ -87,7 +96,6 @@ def render_message(role: str, content: str, sources: list[str] | None = None) ->
         with st.chat_message("user", avatar="👨‍🌾"):
             st.markdown(content)
     else:
-        # Use the leaf icon as a small avatar indicator
         with st.chat_message("assistant", avatar="🌾"):
             st.markdown(content)
             if sources:
@@ -97,15 +105,23 @@ def render_message(role: str, content: str, sources: list[str] | None = None) ->
                     f'<div class="ks-sources">{src_icon} {src_str}</div>',
                     unsafe_allow_html=True,
                 )
+            # Persistent TTS button (survives page reruns)
+            if language and tts_key and content and content.strip():
+                from frontend.components.voice_input import render_voice_output
+                render_voice_output(
+                    text=content, language=language, key_suffix=tts_key,
+                )
 
 
-def render_chat_history(messages: list[dict]) -> None:
+def render_chat_history(messages: list[dict], *, language: str | None = None) -> None:
     """Render the full chat history from session state."""
-    for msg in messages:
+    for i, msg in enumerate(messages):
         render_message(
             role=msg["role"],
             content=msg["content"],
             sources=msg.get("sources"),
+            language=language,
+            tts_key=f"hist_{i}" if language else None,
         )
 
 
