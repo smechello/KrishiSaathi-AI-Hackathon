@@ -140,7 +140,16 @@ _UI: dict[str, dict[str, str]] = {
 
 
 def _ui(lang: str, key: str) -> str:
-    return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
+    lang_map = _UI.get(lang)
+    if lang_map and key in lang_map:
+        return lang_map[key]
+    base = _UI["en"][key]
+    if lang == "en":
+        return base
+    try:
+        return translator.from_english(base, dest=lang)
+    except Exception:
+        return base
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -462,9 +471,10 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
     )
 
     if ask_btn and (query or voice_q):
-        query_en = query or voice_q or ""
+        query_src = query or voice_q or ""
+        query_en = query_src
         if lang != "en":
-            query_en = translator.to_english(query, src=lang)
+            query_en = translator.to_english(query_src, src=lang)
 
         with st.spinner(_ui(lang, "thinking")):
             start = time.time()
@@ -481,15 +491,11 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
                     if lang != "en":
                         answer = translator.from_english(answer, dest=lang)
 
-                st.subheader(f"📋 {_ui(lang, 'summary_header')}")
-                st.markdown(answer)
-
-                render_voice_output(answer, language=lang, key_suffix="scheme_adv")
-
-                if sources:
-                    src_str = " · ".join(f"`{s}`" for s in sources)
-                    st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
-                st.caption(f"⏱️ {elapsed:.1f}s")
+                st.session_state["scheme_adv_result"] = {
+                    "answer": answer,
+                    "sources": sources,
+                    "elapsed": elapsed,
+                }
 
             except Exception as exc:
                 logger.error("Scheme advisor error: %s", exc, exc_info=True)
@@ -497,6 +503,16 @@ def _render_advisor(agent: SchemeAgent, lang: str) -> None:
 
     elif ask_btn and not query:
         st.warning(_ui(lang, "no_results"))
+
+    result = st.session_state.get("scheme_adv_result")
+    if result:
+        st.subheader(f"📋 {_ui(lang, 'summary_header')}")
+        st.markdown(result.get("answer", ""))
+        render_voice_output(result.get("answer", ""), language=lang, key_suffix="scheme_adv")
+        if result.get("sources"):
+            src_str = " · ".join(f"`{s}`" for s in result.get("sources", []))
+            st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
+        st.caption(f"⏱️ {result.get('elapsed', 0):.1f}s")
 
     # ── Quick questions ────────────────────────────────────────────────
     st.divider()

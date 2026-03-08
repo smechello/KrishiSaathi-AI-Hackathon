@@ -129,8 +129,17 @@ _UI_STRINGS: dict[str, dict[str, str]] = {
 
 
 def _ui(lang: str, key: str) -> str:
-    """Get a localised UI string, fallback to English."""
-    return _UI_STRINGS.get(lang, _UI_STRINGS["en"]).get(key, _UI_STRINGS["en"][key])
+    """Get a localised UI string, auto-translating English fallback if needed."""
+    lang_map = _UI_STRINGS.get(lang)
+    if lang_map and key in lang_map:
+        return lang_map[key]
+    base = _UI_STRINGS["en"][key]
+    if lang == "en":
+        return base
+    try:
+        return translator.from_english(base, dest=lang)
+    except Exception:
+        return base
 
 
 # ── Main ───────────────────────────────────────────────────────────────

@@ -54,8 +54,18 @@ _LABELS: dict[str, dict[str, str]] = {
 
 
 def _label(lang: str, key: str) -> str:
-    """Get localised label."""
-    return _LABELS.get(lang, _LABELS["en"]).get(key, _LABELS["en"][key])
+    """Get localised label, translating the English fallback when needed."""
+    lang_map = _LABELS.get(lang)
+    if lang_map and key in lang_map:
+        return lang_map[key]
+    base = _LABELS["en"][key]
+    if lang == "en":
+        return base
+    try:
+        from backend.services.translation_service import translator
+        return translator.from_english(base, dest=lang)
+    except Exception:
+        return base
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -81,16 +91,20 @@ def render_voice_input(language: str = "en", key_suffix: str = "") -> Optional[s
         return None
 
     # Audio recorder widget — returns bytes when recording is done
-    audio_bytes = audio_recorder(
-        text=_label(language, "speak_label"),
-        recording_color="#e8403a",
-        neutral_color="#6aa36f",
-        icon_name="microphone",
-        icon_size="2x",
-        pause_threshold=2.0,
-        sample_rate=16000,
-        key=f"voice_rec_{key_suffix}",
-    )
+    try:
+        audio_bytes = audio_recorder(
+            text=_label(language, "speak_label"),
+            recording_color="#e8403a",
+            neutral_color="#6aa36f",
+            icon_name="microphone",
+            icon_size="2x",
+            pause_threshold=2.0,
+            sample_rate=16000,
+            key=f"voice_rec_{key_suffix}",
+        )
+    except Exception as exc:
+        logger.warning("audio_recorder component failed to load: %s", exc)
+        return None
 
     if not audio_bytes:
         return None
@@ -154,12 +168,15 @@ def render_voice_output(
 def _play_tts(text: str, language: str) -> None:
     """Generate TTS audio and play it via st.audio."""
     try:
-        from backend.services.voice_service import voice
+        from backend.services.voice_service import voice, strip_emojis
 
-        # voice_service now handles all languages natively
-        # (Polly for en/hi, gTTS for te/ta/kn/ml/mr/bn/gu/pa)
+        # Strip emojis before TTS so it doesn't read "star emoji" etc.
+        clean_text = strip_emojis(text)
+        if not clean_text:
+            return
+
         audio_bytes = voice.text_to_speech(
-            text=text,
+            text=clean_text,
             language=language,
             output_format="mp3",
         )

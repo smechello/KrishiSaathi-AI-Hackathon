@@ -136,7 +136,16 @@ _UI: dict[str, dict[str, str]] = {
 
 
 def _ui(lang: str, key: str) -> str:
-    return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
+    lang_map = _UI.get(lang)
+    if lang_map and key in lang_map:
+        return lang_map[key]
+    base = _UI["en"][key]
+    if lang == "en":
+        return base
+    try:
+        return translator.from_english(base, dest=lang)
+    except Exception:
+        return base
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -438,27 +447,34 @@ def _render_advisory(agent: WeatherAgent, lang: str) -> None:
                     advisory = translator.ensure_english(advisory)
                     if lang != "en":
                         advisory = translator.from_english(advisory, dest=lang)
-
-                # Weather summary on top
-                if weather_data:
-                    wtemp = weather_data.get("temperature_c", "--")
-                    whum = weather_data.get("humidity", "--")
-                    wdesc = weather_data.get("description", "")
-                    wdesc_local = _t(wdesc, lang)
-                    st.info(f"📍 **{city_name}** — {_icon(wdesc)} {wdesc_local.title()} | 🌡️ {wtemp}°C | 💧 {whum}%")
-
-                st.markdown(advisory)
-
-                render_voice_output(advisory, language=lang, key_suffix="weather_adv")
-
-                if sources:
-                    src_str = " · ".join(f"`{s}`" for s in sources)
-                    st.caption(f"📚 Sources: {src_str}")
-                st.caption(f"⏱️ {elapsed:.1f}s")
+                st.session_state["weather_adv_result"] = {
+                    "advisory": advisory,
+                    "weather": weather_data,
+                    "sources": sources,
+                    "elapsed": elapsed,
+                    "city": city_name,
+                }
 
             except Exception as exc:
                 logger.error("Crop advisory error: %s", exc, exc_info=True)
                 st.error(f"Advisory failed: {exc}")
+
+    result = st.session_state.get("weather_adv_result")
+    if result:
+        weather_data = result.get("weather", {})
+        if weather_data:
+            wtemp = weather_data.get("temperature_c", "--")
+            whum = weather_data.get("humidity", "--")
+            wdesc = weather_data.get("description", "")
+            wdesc_local = _t(wdesc, lang)
+            st.info(f"📍 **{result.get('city', city_name)}** — {_icon(wdesc)} {wdesc_local.title()} | 🌡️ {wtemp}°C | 💧 {whum}%")
+
+        st.markdown(result.get("advisory", ""))
+        render_voice_output(result.get("advisory", ""), language=lang, key_suffix="weather_adv")
+        if result.get("sources"):
+            src_str = " · ".join(f"`{s}`" for s in result.get("sources", []))
+            st.caption(f"📚 Sources: {src_str}")
+        st.caption(f"⏱️ {result.get('elapsed', 0):.1f}s")
 
     # ── Quick crop advisories ──────────────────────────────────────────
     if current:
