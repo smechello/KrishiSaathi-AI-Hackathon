@@ -817,8 +817,10 @@ def _render_comparison(lang: str, palette: dict) -> None:
 def _render_ai_advisor(lang: str) -> None:
     result = st.session_state.get("fin_plan_result")
 
+    _prefill = st.session_state.pop("_fin_plan_prefill", "")
     q = st.text_area(
         _ui("advisor_label", lang),
+        value=_prefill,
         placeholder=_ui("advisor_placeholder", lang),
         height=100,
         key="fin_plan_input",
@@ -918,7 +920,7 @@ Be encouraging but honest about risks. If budget is tight, suggest low-investmen
         with col:
             label = q_txt[:28] + "…" if len(q_txt) > 28 else q_txt
             if st.button(label, key=f"finq_{i}", use_container_width=True):
-                st.session_state["fin_plan_input"] = q_txt
+                st.session_state["_fin_plan_prefill"] = q_txt
                 st.rerun()
 
 

@@ -452,8 +452,10 @@ def _render_ai_planner(crops: list[dict], current_month: str, lang: str) -> None
     result = st.session_state.get("crop_plan_result")
 
     # Voice or text input
+    _prefill = st.session_state.pop("_crop_plan_prefill", "")
     q = st.text_area(
         _ui("planner_label", lang),
+        value=_prefill,
         placeholder=_ui("planner_placeholder", lang),
         height=100,
         key="crop_plan_input",
@@ -553,7 +555,7 @@ Write in a helpful, encouraging tone suitable for farmers."""
         with col:
             label = q_txt[:28] + "…" if len(q_txt) > 28 else q_txt
             if st.button(label, key=f"cropq_{i}", use_container_width=True):
-                st.session_state["crop_plan_input"] = q_txt
+                st.session_state["_crop_plan_prefill"] = q_txt
                 st.rerun()
 
 
