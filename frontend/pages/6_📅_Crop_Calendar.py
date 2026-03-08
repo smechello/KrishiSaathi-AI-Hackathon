@@ -197,7 +197,7 @@ def main() -> None:
     user = require_auth()
     if not user:
         return
-    lang = render_sidebar(user)
+    lang = render_sidebar()
     palette = get_palette()
     theme = get_theme()
 

@@ -430,6 +430,7 @@ System: You are KrishiSaathi. Here is what you remember about this farmer:
 | Weather | `pages/4_🌤️_Weather.py` | Location-based forecasts |
 | Soil Expert | `pages/5_🧪_Soil_Expert.py` | Soil analysis & recommendations |
 | Crop Calendar | `pages/6_📅_Crop_Calendar.py` | Seasonal crop timeline & AI planner |
+| Profit Calculator | `pages/7_💹_Profit_Calculator.py` | Crop economics, comparison & AI financial advisor |
 | Admin | `pages/8_🔒_Admin.py` | 7-tab admin console |
 
 ### 8.2 Theme System
