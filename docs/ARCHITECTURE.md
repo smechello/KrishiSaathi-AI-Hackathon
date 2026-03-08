@@ -23,58 +23,58 @@
 ## 1. High-Level Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     FRONTEND (Streamlit)                            │
-│  ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐│
-│  │ 💬 Chat  │ │🌱CropDoctor│ │💰 Market │ │🏛️ Schemes│ │🌤️/🧪  ││
-│  │   (Home) │ │  (Vision)  │ │  Prices  │ │  Advisor │ │Wtr/Soil││
-│  └──────────┘ └────────────┘ └──────────┘ └──────────┘ └────────┘│
+┌────────────────────────────────────────────────────────────────────┐
+│                     FRONTEND (Streamlit)                           │
+│  ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐  │
+│  │ 💬 Chat  │ │🌱CropDoctor│ │💰 Market │ │🏛️ Schemes│ │🌤️/🧪│  │
+│  │   (Home) │ │  (Vision)  │ │  Prices  │ │  Advisor │ │Wtr/Soil│  │
+│  └──────────┘ └────────────┘ └──────────┘ └──────────┘ └────────┘  │
 │                    ┌──────────────┐                                │
 │                    │ 🔒 Admin     │                                │
 │                    │  Console     │                                │
 │                    └──────────────┘                                │
-└──────────────────────┬──────────────────────────────────────────────┘
+└──────────────────────┬─────────────────────────────────────────────┘
                        │ Streamlit session / function calls
                        ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     BACKEND ORCHESTRATION                           │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │              KrishiSaathi (Facade — main.py)                 │  │
-│  │  • Boots RAG engine    • Creates SupervisorAgent             │  │
-│  │  • Exposes ask(query)  • Injects memory context              │  │
-│  └──────────────────────────┬───────────────────────────────────┘  │
-│                              │                                      │
+┌────────────────────────────────────────────────────────────────────┐
+│                     BACKEND ORCHESTRATION                          │
+│                                                                    │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │              KrishiSaathi (Facade — main.py)                  │ │
+│  │  • Boots RAG engine    • Creates SupervisorAgent              │ │
+│  │  • Exposes ask(query)  • Injects memory context               │ │
+│  └───────────────────────────┬───────────────────────────────────┘ │
+│                              │                                     │
 │  ┌───────────────────────────▼──────────────────────────────────┐  │
-│  │            SupervisorAgent (supervisor_agent.py)              │  │
+│  │            SupervisorAgent (supervisor_agent.py)             │  │
 │  │  1. Classify intent (LLM call)                               │  │
 │  │  2. Route to specialist agent(s)                             │  │
 │  │  3. Synthesize final response (LLM call)                     │  │
 │  └──┬──────┬──────┬──────┬──────┬───────────────────────────────┘  │
-│     │      │      │      │      │                                   │
+│     │      │      │      │      │                                  │
 │     ▼      ▼      ▼      ▼      ▼                                  │
-│  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐                         │
-│  │Crop  ││Market││Scheme││Weathr││ Soil │  ← 5 Specialist Agents  │
+│  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐                          │
+│  │Crop  ││Market││Scheme││Weathr││ Soil │  ← 5 Specialist Agents   │
 │  │Doctor││Agent ││Agent ││Agent ││Expert│                          │
-│  └──┬───┘└──┬───┘└──┬───┘└──┬───┘└──┬───┘                         │
+│  └──┬───┘└──┬───┘└──┬───┘└──┬───┘└──┬───┘                          │
 │     └───────┴───────┴───┬───┴───────┘                              │
-│                         ▼                                           │
+│                         ▼                                          │
 │  ┌──────────────────────────────────────────────────────────────┐  │
-│  │                    Services Layer                             │  │
-│  │  • LLMHelper (Groq + Gemini dual backend)                   │  │
-│  │  • RAGEngine (ChromaDB + Gemini embeddings)                  │  │
+│  │                    Services Layer                            │  │
+│  │  • LLMHelper (AWS Bedrock + fallback chain)                  │  │
+│  │  • RAGEngine (Vector Store + Titan embeddings)               │  │
 │  │  • MemoryEngine (Mem0-inspired user memory)                  │  │
-│  │  • SupabaseManager (auth, persistence)                       │  │
+│  │  • DatabaseManager (Amazon RDS PostgreSQL)                   │  │
 │  │  • WeatherService, TranslationService, VoiceService          │  │
 │  └──────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────┘
                        │
           ┌────────────┼────────────┐
           ▼            ▼            ▼
    ┌────────────┐ ┌─────────┐ ┌──────────┐
-   │ Supabase   │ │ChromaDB │ │ External │
-   │ (Auth,     │ │ (Vector │ │  APIs    │
-   │  Storage)  │ │  Store) │ │          │
+   │ Amazon RDS │ │ Vector  │ │ External │
+   │ PostgreSQL │ │  Store  │ │  APIs    │
+   │ (Auth/DB)  │ │ (RAG)   │ │          │
    └────────────┘ └─────────┘ └──────────┘
 ```
 
@@ -95,7 +95,7 @@ KrishiSaathi-AI-Hackathon/
 │   │   ├── soil_agent.py           # Soil health & fertilizer plans
 │   │   └── weather_agent.py        # Weather forecasts & farm advisories
 │   ├── knowledge_base/
-│   │   ├── rag_engine.py           # ChromaDB + Gemini embedding pipeline
+│   │   ├── rag_engine.py           # Vector Store + embedding pipeline
 │   │   └── documents/              # Source JSON knowledge files
 │   │       ├── crop_diseases.json
 │   │       ├── farming_practices.json
@@ -107,13 +107,13 @@ KrishiSaathi-AI-Hackathon/
 │   │   ├── mandi_prices.json
 │   │   └── schemes_database.json
 │   ├── services/
-│   │   ├── llm_helper.py           # Dual Groq/Gemini LLM backend
-│   │   ├── supabase_service.py     # Auth, DB, admin operations
+│   │   ├── llm_helper.py           # AWS Bedrock LLM backend + fallback
+│   │   ├── supabase_service.py     # Auth & database operations
 │   │   ├── memory_engine.py        # Per-user memory with fact extraction
 │   │   ├── weather_service.py      # OpenWeatherMap integration
 │   │   ├── translation_service.py  # Multi-language support
 │   │   ├── voice_service.py        # TTS / speech services
-│   │   └── database_service.py     # Legacy SQLite (superseded by Supabase)
+│   │   └── database_service.py     # Legacy SQLite (superseded by RDS)
 │   ├── config.py                   # Centralised config (env + admin overrides)
 │   └── main.py                     # KrishiSaathi facade class
 ├── frontend/
@@ -130,9 +130,10 @@ KrishiSaathi-AI-Hackathon/
 │       ├── 3_🏛️_Government_Schemes.py
 │       ├── 4_🌤️_Weather.py
 │       ├── 5_🧪_Soil_Expert.py
-│       └── 6_🔒_Admin.py
+│       ├── 6_📅_Crop_Calendar.py
+│       └── 8_🔒_Admin.py
 ├── scripts/
-│   ├── ingest_knowledge_base.py    # Bulk-load JSON → ChromaDB
+│   ├── ingest_knowledge_base.py    # Bulk-load JSON → Knowledge Base
 │   ├── test_integration.py         # End-to-end smoke tests
 │   └── verify_keys.py              # API key validation
 ├── tests/
@@ -171,16 +172,16 @@ User Query
                    │
                    ▼
 ┌──────────────────────────────────────────┐
-│ 2. ROUTE TO SPECIALIST(S)               │
-│    • Primary → CropDoctorAgent          │
-│    • Secondary → WeatherAgent (if any)  │
-│    • RAG context injected into prompt   │
-│    • Memory context injected            │
+│ 2. ROUTE TO SPECIALIST(S)                │
+│    • Primary → CropDoctorAgent           │
+│    • Secondary → WeatherAgent (if any)   │
+│    • RAG context injected into prompt    │
+│    • Memory context injected             │
 └──────────────────┬───────────────────────┘
                    │
                    ▼
 ┌──────────────────────────────────────────┐
-│ 3. SYNTHESIZE RESPONSE                  │
+│ 3. SYNTHESIZE RESPONSE                   │
 │    Combine specialist outputs →          │
 │    Single farmer-friendly answer         │
 │    with Markdown formatting              │
@@ -191,7 +192,7 @@ User Query
 
 | Agent | File | RAG Collections | External Data |
 |-------|------|-----------------|---------------|
-| **Crop Doctor** | `crop_doctor_agent.py` | `crop_diseases`, `farming_practices` | Gemini Vision (image analysis) |
+| **Crop Doctor** | `crop_doctor_agent.py` | `crop_diseases`, `farming_practices` | Bedrock Vision (image analysis) |
 | **Market Agent** | `market_agent.py` | `market_data`, `mandi_prices` | eNAM / static mandi data |
 | **Scheme Agent** | `scheme_agent.py` | `government_schemes`, `schemes_database` | — |
 | **Weather Agent** | `weather_agent.py` | — | OpenWeatherMap API |
@@ -216,8 +217,8 @@ Child agents are created on first use (`_get_agent()` factory in SupervisorAgent
 ### 4.1 Embedding Pipeline
 
 ```
-JSON Source Files                  ChromaDB Collections
-─────────────────                  ────────────────────
+JSON Source Files                  Vector Store Collections
+─────────────────                  ──────────────────────
 crop_diseases.json        →       crop_diseases       (40+ docs)
 farming_practices.json    →       farming_practices   (35+ docs)
 government_schemes.json   →       government_schemes  (30+ docs)
@@ -232,10 +233,10 @@ schemes_database.json     →       schemes_database    (23+ docs)
 
 ### 4.2 Embedding Model
 
-- **Model**: `gemini-embedding-001` (Google Gemini)
+- **Model**: Amazon Titan Embeddings V2
 - **Dimensions**: 768
 - **Rate Limiting**: Built-in sleep + retry with exponential back-off
-- **Persistence**: ChromaDB stores embeddings on disk (`chromadb_data/`)
+- **Persistence**: Vector store on disk (`chromadb_data/`)
 
 ### 4.3 Query Flow
 
@@ -275,31 +276,33 @@ The Admin console (tab 5) supports live CRUD on the knowledge base:
               ┌────────────┴────────────┐
               ▼                         ▼
        ┌─────────────┐          ┌─────────────┐
-       │   Groq      │          │   Gemini    │
-       │  (Primary)  │          │ (Fallback)  │
-       │  Free Tier  │          │  Free Tier  │
+       │ AWS Bedrock │          │  Fallback   │
+       │  (Primary)  │          │  Chain      │
+       │ Claude 3.5  │          │  (Groq/     │
+       │   Sonnet    │          │   Gemini)   │
        └─────────────┘          └─────────────┘
 ```
 
-### 5.2 Groq Configuration
+### 5.2 AWS Bedrock Configuration
 
 | Role | Model | Purpose |
-|------|-------|---------|
-| Classifier | `llama-3.1-8b-instant` | Fast intent classification |
-| Agent | `llama-3.3-70b-versatile` | Deep reasoning for specialist agents |
-| Synthesis | `llama-3.1-8b-instant` | Response synthesis |
+|------|-------|--------|
+| Classifier | `claude-3-haiku` | Fast intent classification |
+| Agent | `claude-3.5-sonnet` | Deep reasoning for specialist agents |
+| Synthesis | `claude-3-haiku` | Response synthesis |
+| Vision | `claude-3.5-sonnet` | Crop disease image analysis |
 
 ### 5.3 Fallback Chain
 
-Each role has a 3-model fallback chain. If the primary model hits rate limits or errors, the system automatically tries the next model:
+Each role has a multi-model fallback chain. If the primary Bedrock model hits limits or errors, the system automatically falls back:
 
 ```
-classifier: llama-3.1-8b-instant → llama-3.3-70b-versatile → llama-4-scout
-agent:      llama-3.3-70b-versatile → llama-4-scout → llama-3.1-8b-instant
-synthesis:  llama-3.1-8b-instant → llama-3.3-70b-versatile → llama-4-scout
+Primary:  AWS Bedrock (Claude 3.5 Sonnet / Haiku)
+          ↓ fallback
+Secondary: Groq Cloud (Llama 3.x models)
+          ↓ fallback
+Tertiary:  Gemini Flash
 ```
-
-If all Groq models fail → falls back to **Gemini 2.0 Flash**.
 
 ### 5.4 Caching & Rate Limiting
 
@@ -311,14 +314,14 @@ If all Groq models fail → falls back to **Gemini 2.0 Flash**.
 
 ## 6. Authentication & User Management
 
-### 6.1 Supabase Auth
+### 6.1 Auth Layer
 
 ```
 Login/Signup Page
        │
        ▼
 ┌─────────────────┐     ┌──────────────────┐
-│ frontend/       │────▶│ Supabase Auth    │
+│ frontend/       │───▶│ Auth Service     │
 │ components/     │     │ (email/password) │
 │ auth.py         │     └────────┬─────────┘
 │                 │              │
@@ -331,7 +334,7 @@ Login/Signup Page
 
 ### 6.2 Row-Level Security (RLS)
 
-Every table uses Supabase RLS so users can only access their own data:
+Database uses RLS so users can only access their own data:
 
 | Table | Policy |
 |-------|--------|
@@ -364,7 +367,7 @@ User Message
 │  LLM Fact Extraction           │
 │  "I grow rice in Nalgonda"     │
 │  → { category: "crops",        │
-│       fact: "grows rice",       │
+│       fact: "grows rice",      │
 │       location: "Nalgonda" }   │
 └──────────────┬─────────────────┘
                │
@@ -426,7 +429,9 @@ System: You are KrishiSaathi. Here is what you remember about this farmer:
 | Government Schemes | `pages/3_🏛️_Government_Schemes.py` | Scheme eligibility |
 | Weather | `pages/4_🌤️_Weather.py` | Location-based forecasts |
 | Soil Expert | `pages/5_🧪_Soil_Expert.py` | Soil analysis & recommendations |
-| Admin | `pages/6_🔒_Admin.py` | 7-tab admin console |
+| Crop Calendar | `pages/6_📅_Crop_Calendar.py` | Seasonal crop timeline & AI planner |
+| Profit Calculator | `pages/7_💹_Profit_Calculator.py` | Crop economics, comparison & AI financial advisor |
+| Admin | `pages/8_🔒_Admin.py` | 7-tab admin console |
 
 ### 8.2 Theme System
 
@@ -458,27 +463,27 @@ Custom KrishiSaathi theme with dark/light mode toggle:
 ```
 1. User types message in Streamlit UI
    │
-2. require_auth() verifies Supabase session
+2. require_auth() verifies session
    │
 3. MemoryEngine.recall(user_id, query) → memory context string
    │
 4. KrishiSaathi.ask(query, user_id, memory_context)
    │
 5. SupervisorAgent.classify_intent(query)
-   │  └─ LLM call (Groq classifier) → { intent, entities }
+   │  └─ LLM call (Bedrock classifier) → { intent, entities }
    │
 6. SupervisorAgent routes to specialist agent(s)
-   │  ├─ Agent queries RAG (ChromaDB) for relevant docs
+   │  ├─ Agent queries RAG (vector store) for relevant docs
    │  ├─ Agent may call external APIs (weather, prices)
-   │  └─ Agent generates response via LLM (Groq agent model)
+   │  └─ Agent generates response via LLM (Bedrock agent model)
    │
 7. SupervisorAgent.synthesize(agent_outputs)
-   │  └─ LLM call (Groq synthesis) → final answer
+   │  └─ LLM call (Bedrock synthesis) → final answer
    │
 8. MemoryEngine.memorize(user_id, query + response)
    │  └─ LLM extracts facts → embed → deduplicate → store
    │
-9. SupabaseManager.save_chat(user_id, query, response)
+9. DatabaseManager.save_chat(user_id, query, response)
    │
 10. Display response in chat UI
 ```
@@ -489,11 +494,12 @@ Custom KrishiSaathi theme with dark/light mode toggle:
 
 | Service | Purpose | Endpoint |
 |---------|---------|----------|
-| **Supabase** | Auth, profiles, chat history, memories, admin settings | `tmkvxwglzzsxorunufok.supabase.co` |
-| **Groq Cloud** | Primary LLM inference (Llama models) | `api.groq.com` |
-| **Google Gemini** | Embeddings, vision, fallback LLM | `generativelanguage.googleapis.com` |
+| **Amazon RDS** | Auth, profiles, chat history, memories, admin settings | `ap-south-1` |
+| **AWS Bedrock** | Primary LLM inference (Claude models) | `bedrock-runtime.ap-south-1` |
+| **Amazon Polly** | Text-to-speech in Indian languages | `polly.ap-south-1` |
+| **Amazon Transcribe** | Speech-to-text for voice input | `transcribe.ap-south-1` |
 | **OpenWeatherMap** | Weather data (current + 5-day forecast) | `api.openweathermap.org` |
-| **ChromaDB** | Local vector store (persisted to disk) | In-process (no network) |
+| **Vector Store** | Local embedding store (persisted to disk) | In-process (no network) |
 
 ---
 
@@ -504,18 +510,18 @@ Custom KrishiSaathi theme with dark/light mode toggle:
 ```
 GitHub Repository (branch: shashi)
         │
-        ▼ (auto-deploy on push)
+        ▼ (deployed on AWS EC2)
 ┌────────────────────────────┐
-│  Streamlit Community Cloud │
+│  Amazon EC2 (ap-south-1)   │
 │  • Python 3.13             │
-│  • Ephemeral filesystem    │
-│  • Secrets via st.secrets  │
-│  • ChromaDB in-memory mode │
+│  • Nginx reverse proxy     │
+│  • HTTPS via Let's Encrypt │
+│  • systemd managed         │
 └────────────────────────────┘
         │
-        ├──▶ Supabase (persistent data)
-        ├──▶ Groq Cloud (LLM)
-        ├──▶ Google AI (embeddings)
+        ├──▶ Amazon RDS (persistent data)
+        ├──▶ AWS Bedrock (LLM)
+        ├──▶ Amazon Polly / Transcribe
         └──▶ OpenWeatherMap (weather)
 ```
 
@@ -523,8 +529,9 @@ GitHub Repository (branch: shashi)
 
 | Variable | Source (Local) | Source (Cloud) |
 |----------|----------------|----------------|
-| `GEMINI_API_KEY` | `.env` | `st.secrets` |
-| `GROQ_API_KEY` | `.env` | `st.secrets` |
+| `AWS_REGION` | `.env` | Instance metadata |
+| `RDS_HOST` | `.env` | `st.secrets` |
+| `RDS_PASSWORD` | `.env` | `st.secrets` |
 | `OPENWEATHER_API_KEY` | `.env` | `st.secrets` |
 | `SUPABASE_URL` | `.env` | `st.secrets` |
 | `SUPABASE_KEY` | `.env` | `st.secrets` |
@@ -532,4 +539,4 @@ GitHub Repository (branch: shashi)
 
 ---
 
-*Last updated: February 2026*
+*Last updated: March 2026*

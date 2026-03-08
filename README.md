@@ -84,79 +84,79 @@ Farmer's Question → Supervisor Agent → Delegates to Specialist Agents → Sy
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         USER INTERACTION LAYER                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
-│  │   WhatsApp   │  │   React PWA  │  │     SMS      │  │     IVR      │   │
-│  │  (Primary)   │  │  (Literacy)  │  │ (Fallback)   │  │   (Rural)    │   │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘   │
+│                         USER INTERACTION LAYER                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   WhatsApp   │  │   React PWA  │  │     SMS      │  │     IVR      │     │
+│  │  (Primary)   │  │  (Literacy)  │  │ (Fallback)   │  │   (Rural)    │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      LANGUAGE & SPEECH PROCESSING                            │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐         │
-│  │ Amazon Transcribe│→ │ Amazon Translate │→ │   Amazon Polly   │         │
-│  │ (Speech → Text)  │  │  (12 Languages)  │  │ (Text → Speech)  │         │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘         │
+│                      LANGUAGE & SPEECH PROCESSING                           │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
+│  │ Amazon Transcribe│→ │ Amazon Translate │→ │   Amazon Polly   │           │
+│  │ (Speech → Text)  │  │  (12 Languages)  │  │ (Text → Speech)  │           │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘           │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────────────────────┐
 │                    MULTI-AGENT ORCHESTRATION LAYER                           │
 │                        (Amazon Bedrock Agents)                               │
-│                                                                               │
-│                      ┌───────────────────────┐                              │
-│                      │   SUPERVISOR AGENT    │                              │
-│                      │  (Claude 3.5 Sonnet)  │                              │
+│                                                                              │
+│                      ┌────────────────────────┐                              │
+│                      │   SUPERVISOR AGENT     │                              │
+│                      │  (Claude 3.5 Sonnet)   │                              │
 │                      │  - Query Understanding │                              │
 │                      │  - Agent Delegation    │                              │
 │                      │  - Response Synthesis  │                              │
-│                      └───────────────────────┘                              │
-│                               │                                               │
-│          ┌────────────────────┼────────────────────┐                        │
+│                      └────────────────────────┘                              │
+│                               │                                              │
+│          ┌────────────────────┼────────────────────┐                         │
 │          ▼                    ▼                    ▼                         │
-│   ┌─────────────┐      ┌─────────────┐     ┌─────────────┐                │
-│   │ Crop Doctor │      │   Market    │     │  Weather    │                │
-│   │    Agent    │      │ Intelligence│     │   Prophet   │                │
-│   │             │      │    Agent    │     │    Agent    │                │
-│   └─────────────┘      └─────────────┘     └─────────────┘                │
+│   ┌─────────────┐      ┌─────────────┐     ┌─────────────┐                   │
+│   │ Crop Doctor │      │   Market    │     │  Weather    │                   │
+│   │    Agent    │      │ Intelligence│     │   Prophet   │                   │
+│   │             │      │    Agent    │     │    Agent    │                   │
+│   └─────────────┘      └─────────────┘     └─────────────┘                   │
 │          ▼                    ▼                    ▼                         │
-│   ┌─────────────┐      ┌─────────────┐     ┌─────────────┐                │
-│   │  Govt       │      │    Soil     │     │             │                │
-│   │  Scheme     │      │   Expert    │     │             │                │
-│   │  Advisor    │      │   Agent     │     │             │                │
-│   └─────────────┘      └─────────────┘     └─────────────┘                │
-└─────────────────────────────────────────────────────────────────────────────┘
+│   ┌─────────────┐      ┌─────────────┐     ┌─────────────┐                   │
+│   │  Govt       │      │    Soil     │     │             │                   │
+│   │  Scheme     │      │   Expert    │     │             │                   │
+│   │  Advisor    │      │   Agent     │     │             │                   │
+│   └─────────────┘      └─────────────┘     └─────────────┘                   │
+└──────────────────────────────────────────────────────────────────────────────┘
                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     KNOWLEDGE & DATA LAYER                                   │
+┌────────────────────────────────────────────────────────────────────────────┐
+│                     KNOWLEDGE & DATA LAYER                                 │
 │  ┌───────────────────────────────────────────────────────────────┐         │
-│  │            Amazon Bedrock Knowledge Base (RAG)                 │         │
+│  │            Amazon Bedrock Knowledge Base (RAG)                │         │
 │  │  - 50,000+ Agricultural Documents (ICAR, KVK, State Govt)     │         │
 │  │  - Crop Disease Database (Images + Treatment)                 │         │
 │  │  - Government Schemes & Eligibility Criteria                  │         │
-│  │  - Best Practices & Success Stories                            │         │
+│  │  - Best Practices & Success Stories                           │         │
 │  └───────────────────────────────────────────────────────────────┘         │
-│                   ▼ (Amazon Titan Embeddings V2)                            │
+│                   ▼ (Amazon Titan Embeddings V2)                           │
 │  ┌───────────────────────────────────────────────────────────────┐         │
-│  │         Amazon OpenSearch Serverless (Vector Store)            │         │
+│  │         Amazon OpenSearch Serverless (Vector Store)           │         │
 │  └───────────────────────────────────────────────────────────────┘         │
+└────────────────────────────────────────────────────────────────────────────┘
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    EXTERNAL INTEGRATIONS & APIs                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  eNAM Mandi  │  │ IMD Weather  │  │  PM-KISAN    │  │ Soil Health  │     │
+│  │  API (Live   │  │ API (Hyper-  │  │  Portal API  │  │  Card API    │     │
+│  │  Prices)     │  │  local)      │  │              │  │              │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘     │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    EXTERNAL INTEGRATIONS & APIs                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  eNAM Mandi  │  │ IMD Weather  │  │  PM-KISAN    │  │ Soil Health  │  │
-│  │  API (Live   │  │ API (Hyper-  │  │  Portal API  │  │  Card API    │  │
-│  │  Prices)     │  │  local)      │  │              │  │              │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      COMPUTE & STORAGE LAYER                                 │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
-│  │ AWS Lambda │  │  DynamoDB  │  │ Amazon S3  │  │API Gateway │           │
-│  │ (Serverless│  │ (User Data,│  │ (Images,   │  │ (REST API) │           │
-│  │  Backend)  │  │ Conversation│  │ Documents) │  │            │           │
-│  └────────────┘  └────────────┘  └────────────┘  └────────────┘           │
+│                      COMPUTE & STORAGE LAYER                                │
+│  ┌────────────┐  ┌─────────────┐  ┌────────────┐  ┌────────────┐            │
+│  │ AWS Lambda │  │  DynamoDB   │  │ Amazon S3  │  │API Gateway │            │
+│  │ (Serverless│  │ (User Data, │  │ (Images,   │  │ (REST API) │            │
+│  │  Backend)  │  │ Conversation│  │ Documents) │  │            │            │
+│  └────────────┘  └─────────────┘  └────────────┘  └────────────┘            │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -424,37 +424,18 @@ KrishiSaathi directly contributes to:
 
 ## 👥 Team
 
-**Team Name**: [KrishiSaathi]
+**Team Name**: KrishiSaathi
 
-| Name | Role | Expertise |
-|------|------|-----------|
-| [Your Name] | [Role] | [Skills] |
-| [Member 2] | [Role] | [Skills] |
-| [Member 3] | [Role] | [Skills] |
+A team of 4 passionate developers from India, building KrishiSaathi for the **AWS AI for Bharat Hackathon 2026** under the track *AI for Rural Innovation & Sustainable Systems*.
 
----
+| Name | Role | Contributions |
+|------|------|----------------|
+| **Shashidhar Reddy N** | Team Lead & AI Engineer | Multi-agent architecture, RAG pipeline, agent orchestration, deployment on EC2 |
+| **Vishnu Preshitha M** | AI/ML Engineer | RAG engine design, backend services, LLM prompt engineering, knowledge base curation |
+| **Pranavi P** | Data & Integration Engineer | Supabase setup, API integrations (weather, mandi, schemes), testing, documentation |
+| **Sai Shiva P** | Frontend & UX Developer | Streamlit UI development, theme system, user experience, accessibility |
 
-## 🏆 Why KrishiSaathi Will Win
-
-### Innovation Score: 10/10
-- **First-ever multi-agent agricultural AI** in India
-- Novel use of Amazon Bedrock Agents for domain-specific collaboration
-- Voice-first design for low-literacy users
-
-### Technical Execution: 10/10
-- Comprehensive architecture using 12+ AWS services
-- RAG implementation with 50,000+ documents
-- Scalable serverless design
-
-### Impact Potential: 10/10
-- Addresses 5 critical problems simultaneously
-- Targets 120 million farmers
-- ₹1,500 crore economic impact in Year 1
-
-### Feasibility: 9/10
-- Built entirely on AWS managed services (no custom infrastructure)
-- WhatsApp integration proven (800M users in India)
-- Government API partnerships are established
+**See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed team info, contribution guidelines, and development setup.**
 
 ---
 

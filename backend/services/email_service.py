@@ -330,36 +330,8 @@ def _welcome_template(name: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Premium custom email template (Admin panel broadcasts & custom mails)
+#  Custom email template — uses SAME design as auth emails (_BASE_STYLE)
 # ═══════════════════════════════════════════════════════════════════════
-
-_PREMIUM_STYLE = """
-    body {{ margin:0; padding:0; background:#f0f4f3; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; -webkit-font-smoothing:antialiased; }}
-    .wrapper {{ max-width:600px; margin:0 auto; padding:40px 16px; }}
-    .card {{ background:#ffffff; border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.06); overflow:hidden; }}
-    .hero {{ background:linear-gradient(145deg, #1B5E20 0%, #2E7D32 40%, #43A047 100%); padding:48px 36px 40px; text-align:center; position:relative; }}
-    .hero::after {{ content:''; position:absolute; bottom:-1px; left:0; right:0; height:40px; background:#ffffff; border-radius:20px 20px 0 0; }}
-    .hero .logo {{ font-size:36px; font-weight:900; color:#fff; letter-spacing:-1px; margin:0; text-shadow:0 2px 8px rgba(0,0,0,0.15); }}
-    .hero .tagline {{ color:rgba(255,255,255,0.85); font-size:13px; margin:6px 0 0; letter-spacing:0.5px; text-transform:uppercase; }}
-    .badge {{ display:inline-block; padding:5px 14px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:12px; }}
-    .content {{ padding:20px 36px 36px; color:#2b2b2b; font-size:15px; line-height:1.8; }}
-    .content h2 {{ color:#1B5E20; margin:0 0 16px; font-size:22px; font-weight:700; }}
-    .content p {{ margin:0 0 14px; }}
-    .content ul {{ padding-left:20px; margin:12px 0; }}
-    .content li {{ margin-bottom:8px; }}
-    .content strong {{ color:#1B5E20; }}
-    .cta-wrap {{ text-align:center; padding:8px 0 24px; }}
-    .cta {{ display:inline-block; padding:16px 48px; background:linear-gradient(135deg, #2E7D32, #388E3C); color:#ffffff !important; text-decoration:none; border-radius:12px; font-weight:700; font-size:16px; letter-spacing:0.3px; box-shadow:0 4px 16px rgba(46,125,50,0.3); transition:all 0.2s; }}
-    .cta:hover {{ box-shadow:0 6px 24px rgba(46,125,50,0.45); }}
-    .divider {{ height:1px; background:linear-gradient(to right, transparent, #e0e0e0, transparent); margin:20px 0; }}
-    .highlight {{ background:linear-gradient(135deg, #E8F5E9, #F1F8E9); border-left:4px solid #2E7D32; padding:16px 20px; border-radius:0 12px 12px 0; margin:20px 0; font-size:14px; color:#1B5E20; }}
-    .social {{ text-align:center; padding:20px 36px 0; }}
-    .social a {{ display:inline-block; margin:0 6px; color:#43A047; text-decoration:none; font-size:13px; font-weight:600; }}
-    .footer {{ padding:20px 36px 28px; text-align:center; }}
-    .footer p {{ color:#999; font-size:12px; line-height:1.6; margin:0 0 4px; }}
-    .footer a {{ color:#43A047; text-decoration:none; }}
-    .unsubscribe {{ color:#bbb !important; font-size:11px; }}
-"""
 
 
 def _custom_email_template(
@@ -371,64 +343,49 @@ def _custom_email_template(
     badge_text: str | None = None,
     badge_color: str = "#2E7D32",
 ) -> str:
-    """Generate a premium-styled custom email."""
+    """Generate a custom email using the same beautiful template as auth emails."""
     badge_block = ""
     if badge_text:
-        badge_block = f'<div class="badge" style="background:{badge_color}; color:#fff;">{badge_text}</div>'
+        badge_block = (
+            f'<div style="display:inline-block;padding:4px 14px;border-radius:20px;'
+            f'background:{badge_color};color:#fff;font-size:11px;font-weight:700;'
+            f'letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">'
+            f'{badge_text}</div><br>'
+        )
 
     cta_block = ""
     if cta_text and cta_url:
-        cta_block = f"""
-        <div class="cta-wrap">
-          <a href="{cta_url}" class="cta" style="background:linear-gradient(135deg,#2E7D32,#388E3C);color:#ffffff;">{cta_text}</a>
-        </div>"""
+        cta_block = (
+            f'<div style="text-align:center; margin: 20px 0;">'
+            f'<a href="{cta_url}" class="btn" style="background-color:#2E7D32;">{cta_text}</a>'
+            f'</div>'
+        )
 
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{heading}</title>
-  <style>{_PREMIUM_STYLE}</style>
-</head>
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>{_BASE_STYLE}</style></head>
 <body>
-<div class="wrapper">
-  <div class="card">
-    <!-- Hero -->
-    <div class="hero">
-      <div class="logo">KrishiSaathi</div>
-      <div class="tagline">AI Agricultural Advisory System</div>
+<div class="container">
+  <div class="header">
+    <h1>KrishiSaathi</h1>
+    <p>AI Agricultural Advisory System</p>
+  </div>
+  <div class="body">
+    {badge_block}
+    <h2>{heading}</h2>
+    <p>Dear {name},</p>
+    {body_html}
+    {cta_block}
+    <div class="note">
+      Thank you for being part of the KrishiSaathi community. Together, we're
+      empowering Indian agriculture with AI-driven insights.
     </div>
-
-    <!-- Content -->
-    <div class="content">
-      {badge_block}
-      <h2>{heading}</h2>
-      <p>Dear <strong>{name}</strong>,</p>
-      {body_html}
-      {cta_block}
-      <div class="divider"></div>
-      <p style="color:#666; font-size:13px;">
-        Thank you for being part of the KrishiSaathi community. Together, we're
-        empowering Indian agriculture with AI-driven insights.
-      </p>
-    </div>
-
-    <!-- Social -->
-    <div class="social">
-      <a href="{Config.APP_URL}">Web App</a> &nbsp;|&nbsp;
-      <a href="https://t.me/Krishi_Saathi_bot">Telegram Bot</a>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      <p><strong>KrishiSaathi</strong> &mdash; Empowering Farmers with Real-Time Market Intelligence</p>
-      <p>Built with AI for Bharat</p>
-    </div>
+    <p>Happy Farming,<br><strong>Team KrishiSaathi</strong></p>
+  </div>
+  <div class="footer">
+    <div><strong>KrishiSaathi</strong> &mdash; Empowering Farmers with Real-Time Market Intelligence.</div>
+    <div>This is an automated message. Please do not reply directly to this email.</div>
   </div>
 </div>
-</body>
-</html>"""
+</body></html>"""
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -445,7 +402,7 @@ EMAIL_TEMPLATES: list[dict] = [
         "badge_color": "#FF6F00",
         "body_html": """
         <p>It's been a while since you last visited KrishiSaathi, and a lot has changed!</p>
-        <div class="highlight">
+        <div class="note">
           Since your last visit, we've added:<br>
           <strong>Voice support</strong> in 10 Indian languages,
           <strong>real-time mandi prices</strong>, and
@@ -486,7 +443,7 @@ EMAIL_TEMPLATES: list[dict] = [
         "badge_color": "#E65100",
         "body_html": """
         <p>Stay ahead of the market! Here's a quick look at today's mandi price trends:</p>
-        <div class="highlight">
+        <div class="note">
           Ask KrishiSaathi: <em>"What is today's price of wheat in my area?"</em>
           or <em>"Best mandi to sell tomatoes near me"</em> for personalized, real-time quotes.
         </div>
@@ -510,7 +467,7 @@ EMAIL_TEMPLATES: list[dict] = [
           <li>Upload it on the web app or send it to our Telegram bot</li>
           <li>Get instant diagnosis + treatment recommendations</li>
         </ul>
-        <div class="highlight">
+        <div class="note">
           Our AI has been trained on thousands of crop diseases across major Indian crops
           including rice, wheat, cotton, tomato, potato, and more.
         </div>
@@ -537,7 +494,7 @@ EMAIL_TEMPLATES: list[dict] = [
           <li>Important deadlines</li>
           <li>Required documents</li>
         </ul>
-        <div class="highlight">
+        <div class="note">
           Just ask: <em>"What government schemes are available for rice farmers in Telangana?"</em>
         </div>
         """,
@@ -561,7 +518,7 @@ EMAIL_TEMPLATES: list[dict] = [
           <li>Frost, heatwave, and heavy rain warnings</li>
           <li>Soil moisture recommendations</li>
         </ul>
-        <div class="highlight">
+        <div class="note">
           Ask: <em>"Should I irrigate my wheat field this week?"</em> — and get an
           AI-powered recommendation based on your local weather data.
         </div>
@@ -586,7 +543,7 @@ EMAIL_TEMPLATES: list[dict] = [
         </ul>
         <p>Your answers help us build a better tool for millions of Indian farmers.
         It only takes 2 minutes!</p>
-        <div class="highlight">
+        <div class="note">
           Every piece of feedback directly shapes our next update. Your voice matters.
         </div>
         """,
@@ -612,12 +569,55 @@ EMAIL_TEMPLATES: list[dict] = [
           <li><strong>Micronutrients</strong> — Zinc and boron deficiencies are common
           but easily fixable</li>
         </ul>
-        <div class="highlight">
+        <div class="note">
           Ask our AI Soil Expert: <em>"What fertilizer should I use for my sandy loam soil
           to grow tomatoes?"</em>
         </div>
         """,
         "cta_text": "Ask Soil Expert",
+        "cta_url": "{APP_URL}",
+    },
+    {
+        "id": "app_update_march_2026",
+        "name": "🚀 Major App Update — March 2026",
+        "subject": "Big Update: 3 Powerful New Features Added to KrishiSaathi!",
+        "heading": "Exciting New Features Just Launched!",
+        "badge_text": "MAJOR UPDATE",
+        "badge_color": "#1565C0",
+        "body_html": """
+        <p>We've been working hard to make KrishiSaathi even more useful for you,
+        and today we're launching <strong>3 powerful new features</strong>!</p>
+
+        <div class="note">
+          <strong>🌾 Meri Fasal — Smart Farm Diary &amp; AI Daily Planner</strong><br>
+          Register your fields, track crop growth stages in real-time with visual
+          progress bars, log every farming activity (sowing, irrigation, fertilizer,
+          harvest), and get a personalised <em>AI Daily Action Plan</em> that tells
+          you exactly what to do today based on your crops.
+        </div>
+
+        <div class="note">
+          <strong>💹 Profit &amp; Loss Calculator</strong><br>
+          Full economics data for 15 Telangana crops — see cost breakdowns, compare
+          crop profitability side-by-side, and get an AI Financial Advisor that builds
+          a custom budget plan for your farm.
+        </div>
+
+        <div class="note">
+          <strong>📅 Crop Calendar &amp; Seasonal Planner</strong><br>
+          Visual Gantt chart showing sowing-to-harvest timelines, "What to Plant Now"
+          recommendations based on the current month, and a detailed variety guide
+          for every major crop.
+        </div>
+
+        <p>All features support <strong>Telugu, Hindi, and English</strong> with
+        voice input and output.</p>
+
+        <p>Log in now to explore what's new — and don't forget to try the
+        <strong>"Load Demo Farm"</strong> button in Meri Fasal to see it in action!
+        </p>
+        """,
+        "cta_text": "Explore New Features",
         "cta_url": "{APP_URL}",
     },
 ]

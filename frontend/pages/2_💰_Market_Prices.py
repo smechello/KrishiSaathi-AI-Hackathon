@@ -548,9 +548,11 @@ def _render_ai_advisor(
             format_func=lambda x: _ui(lang, "all_crops") if x == "" else x,
             key="advisor_crop_select",
         )
+    _prefill = st.session_state.pop("_advisor_prefill", "")
     with acol2:
         query = st.text_area(
             _ui(lang, "advisor_label"),
+            value=_prefill,
             placeholder=_ui(lang, "advisor_placeholder"),
             height=100,
             key="advisor_query",
@@ -646,7 +648,7 @@ def _render_ai_advisor(
     for i, (col, q) in enumerate(zip(cols, qs)):
         with col:
             if st.button(q[:30] + "…" if len(q) > 30 else q, key=f"qq_{i}", use_container_width=True):
-                st.session_state["advisor_query"] = q
+                st.session_state["_advisor_prefill"] = q
                 st.rerun()
 
 
