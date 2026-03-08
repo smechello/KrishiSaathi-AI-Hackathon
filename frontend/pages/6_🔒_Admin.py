@@ -45,8 +45,9 @@ st.set_page_config(page_title="KrishiSaathi — Admin", page_icon="🔒", layout
 _TABS = [
     "📊 Overview",
     "👥 Users",
-    "� Telegram",
-    "�💬 Chat Logs",
+    "📧 Email Center",
+    "📱 Telegram",
+    "💬 Chat Logs",
     "🧠 Memories",
     "📚 Knowledge Base",
     "⚙️ Configuration",
@@ -352,6 +353,290 @@ def _render_users() -> None:
                 if st.button("💣 Delete All Data", key=f"del_a_{uid}", type="primary"):
                     SupabaseManager.admin_delete_user_data(uid)
                     st.success("All data deleted"); _clear_all_caches(); st.rerun()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  TAB — Email Center
+# ═══════════════════════════════════════════════════════════════════════
+
+def _render_email_center() -> None:
+    from backend.services.email_service import EmailService, EMAIL_TEMPLATES
+
+    p = get_palette(get_theme())
+    configured = EmailService.is_configured()
+
+    st.subheader("📧 Email Center")
+
+    if not configured:
+        st.error(
+            "Email service is not configured. Set `EMAIL_ADDRESS` and `EMAIL_PASSWORD` "
+            "in your `.env` file to enable sending emails."
+        )
+        return
+
+    # ── Load user list ─────────────────────────────────────────────────
+    with st.spinner("Loading user emails…"):
+        users = _load_users()
+
+    emails_list = [
+        {"email": u.get("email", ""), "full_name": u.get("full_name", ""), "id": u.get("id", "")}
+        for u in users if u.get("email")
+    ]
+
+    # ── Summary metrics ────────────────────────────────────────────────
+    mc1, mc2, mc3 = st.columns(3)
+    mc1.metric("Registered Users", len(emails_list))
+    mc2.metric("Email Templates", len(EMAIL_TEMPLATES))
+    mc3.metric("Email Service", "✅ Active" if configured else "❌ Off")
+
+    st.divider()
+
+    # ── Sub-sections ───────────────────────────────────────────────────
+    email_section = st.radio(
+        "email_nav",
+        ["📋 User Emails", "✉️ Send Custom Email", "📢 Broadcast", "📄 Templates"],
+        horizontal=True,
+        key="email_nav",
+        label_visibility="collapsed",
+    )
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  Section: User Emails list
+    # ═══════════════════════════════════════════════════════════════════
+    if "User Emails" in email_section:
+        st.markdown("#### 📋 Registered User Emails")
+        search_q = st.text_input("🔍 Search by name or email", key="em_search")
+
+        display = emails_list
+        if search_q:
+            q = search_q.lower()
+            display = [
+                u for u in emails_list
+                if q in u["email"].lower() or q in (u.get("full_name") or "").lower()
+            ]
+
+        st.caption(f"Showing {len(display)} of {len(emails_list)} users")
+
+        if display:
+            # Table header
+            hc1, hc2, hc3, hc4 = st.columns([3, 4, 2, 2])
+            hc1.markdown("**Name**")
+            hc2.markdown("**Email**")
+            hc3.markdown("**User ID**")
+            hc4.markdown("**Action**")
+
+            for i, u in enumerate(display):
+                c1, c2, c3, c4 = st.columns([3, 4, 2, 2])
+                c1.markdown(u.get("full_name") or "—")
+                c2.markdown(f'`{u["email"]}`')
+                c3.markdown(f'`{u["id"][:8]}…`')
+                if c4.button("✉️", key=f"quickemail_{i}", help=f"Send email to {u['email']}"):
+                    st.session_state["_email_to"] = u["email"]
+                    st.session_state["_email_name"] = u.get("full_name", "Farmer")
+                    st.session_state["email_nav"] = "✉️ Send Custom Email"
+                    st.rerun()
+        else:
+            st.info("No users found.")
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  Section: Send Custom Email
+    # ═══════════════════════════════════════════════════════════════════
+    elif "Send Custom Email" in email_section:
+        st.markdown("#### ✉️ Send Custom Email")
+
+        # Template picker
+        template_names = ["Custom (blank)"] + [t["name"] for t in EMAIL_TEMPLATES]
+        selected_tpl = st.selectbox("Start from template", template_names, key="em_tpl_pick")
+
+        # Pre-fill from template
+        tpl = None
+        if selected_tpl != "Custom (blank)":
+            tpl = next((t for t in EMAIL_TEMPLATES if t["name"] == selected_tpl), None)
+
+        prefill_to = st.session_state.pop("_email_to", "")
+        prefill_name = st.session_state.pop("_email_name", "")
+
+        with st.form("send_email_form"):
+            to_email = st.text_input("To (email)", value=prefill_to, placeholder="user@example.com")
+            recipient_name = st.text_input("Recipient name", value=prefill_name or "Farmer")
+            subject = st.text_input("Subject", value=tpl["subject"] if tpl else "")
+            heading = st.text_input("Heading", value=tpl["heading"] if tpl else "")
+
+            bc1, bc2 = st.columns(2)
+            with bc1:
+                badge_text = st.text_input(
+                    "Badge text (optional)",
+                    value=tpl.get("badge_text", "") if tpl else "",
+                    placeholder="e.g. NEW FEATURE",
+                )
+            with bc2:
+                badge_color = st.color_picker(
+                    "Badge color",
+                    value=tpl.get("badge_color", "#2E7D32") if tpl else "#2E7D32",
+                )
+
+            default_body = tpl["body_html"].strip() if tpl else ""
+            body_html = st.text_area(
+                "Body (HTML allowed)",
+                value=default_body,
+                height=250,
+                placeholder="<p>Your message here…</p>",
+            )
+
+            cc1, cc2 = st.columns(2)
+            with cc1:
+                cta_text = st.text_input(
+                    "Button text (optional)",
+                    value=tpl.get("cta_text", "") if tpl else "",
+                    placeholder="e.g. Open KrishiSaathi",
+                )
+            with cc2:
+                cta_url = st.text_input(
+                    "Button URL (optional)",
+                    value=(tpl.get("cta_url", "").replace("{APP_URL}", Config.APP_URL) if tpl else ""),
+                    placeholder=Config.APP_URL,
+                )
+
+            send_btn = st.form_submit_button("📨 Send Email", type="primary")
+
+        if send_btn:
+            if not to_email or not subject or not heading:
+                st.error("Email, Subject, and Heading are required.")
+            else:
+                with st.spinner(f"Sending email to {to_email}…"):
+                    ok = EmailService.send_custom_email(
+                        to_email=to_email,
+                        subject=subject,
+                        heading=heading,
+                        body_html=body_html or "<p>No content provided.</p>",
+                        recipient_name=recipient_name,
+                        cta_text=cta_text or None,
+                        cta_url=cta_url or None,
+                        badge_text=badge_text or None,
+                        badge_color=badge_color,
+                    )
+                if ok:
+                    st.success(f"✅ Email sent to **{to_email}**!")
+                    st.balloons()
+                else:
+                    st.error("Failed to send email. Check server logs.")
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  Section: Broadcast
+    # ═══════════════════════════════════════════════════════════════════
+    elif "Broadcast" in email_section:
+        st.markdown("#### 📢 Broadcast Email to All Users")
+        st.caption(f"This will send an email to **{len(emails_list)}** registered users.")
+
+        # Template picker
+        template_names = ["Custom (blank)"] + [t["name"] for t in EMAIL_TEMPLATES]
+        selected_tpl = st.selectbox("Start from template", template_names, key="bc_tpl_pick")
+
+        tpl = None
+        if selected_tpl != "Custom (blank)":
+            tpl = next((t for t in EMAIL_TEMPLATES if t["name"] == selected_tpl), None)
+
+        with st.form("broadcast_form"):
+            bc_subject = st.text_input("Subject", value=tpl["subject"] if tpl else "")
+            bc_heading = st.text_input("Heading", value=tpl["heading"] if tpl else "")
+
+            bbc1, bbc2 = st.columns(2)
+            with bbc1:
+                bc_badge = st.text_input(
+                    "Badge text (optional)",
+                    value=tpl.get("badge_text", "") if tpl else "",
+                )
+            with bbc2:
+                bc_badge_color = st.color_picker(
+                    "Badge color",
+                    value=tpl.get("badge_color", "#2E7D32") if tpl else "#2E7D32",
+                    key="bc_badge_color",
+                )
+
+            bc_body = st.text_area(
+                "Body (HTML allowed)",
+                value=tpl["body_html"].strip() if tpl else "",
+                height=250,
+                key="bc_body",
+            )
+
+            bcc1, bcc2 = st.columns(2)
+            with bcc1:
+                bc_cta_text = st.text_input(
+                    "Button text (optional)",
+                    value=tpl.get("cta_text", "") if tpl else "",
+                    key="bc_cta_text",
+                )
+            with bcc2:
+                bc_cta_url = st.text_input(
+                    "Button URL (optional)",
+                    value=(tpl.get("cta_url", "").replace("{APP_URL}", Config.APP_URL) if tpl else ""),
+                    key="bc_cta_url",
+                )
+
+            st.warning(
+                f"⚠️ This will send an email to **{len(emails_list)} users**. "
+                "Make sure the content is correct before proceeding."
+            )
+            bc_confirm = st.checkbox("I confirm I want to broadcast to all users", key="bc_confirm")
+            bc_send = st.form_submit_button("📢 Send Broadcast", type="primary")
+
+        if bc_send:
+            if not bc_confirm:
+                st.error("Please confirm the broadcast by checking the box.")
+            elif not bc_subject or not bc_heading:
+                st.error("Subject and Heading are required.")
+            else:
+                progress = st.progress(0, text="Sending broadcast…")
+                with st.spinner(f"Broadcasting to {len(emails_list)} users…"):
+                    result = EmailService.send_broadcast(
+                        recipients=emails_list,
+                        subject=bc_subject,
+                        heading=bc_heading,
+                        body_html=bc_body or "<p>No content provided.</p>",
+                        cta_text=bc_cta_text or None,
+                        cta_url=bc_cta_url or None,
+                        badge_text=bc_badge or None,
+                        badge_color=bc_badge_color,
+                    )
+                progress.progress(100, text="Done!")
+
+                if result["failed"] == 0:
+                    st.success(f"✅ Broadcast sent to **{result['sent']}** users!")
+                    st.balloons()
+                else:
+                    st.warning(
+                        f"Sent: {result['sent']} | Failed: {result['failed']}\n\n"
+                        f"Failed emails: {', '.join(result['errors'][:10])}"
+                    )
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  Section: Template Gallery
+    # ═══════════════════════════════════════════════════════════════════
+    elif "Templates" in email_section:
+        st.markdown("#### 📄 Pre-loaded Email Templates")
+        st.caption("Click on any template to preview. Use them in custom emails or broadcasts.")
+
+        for tpl in EMAIL_TEMPLATES:
+            badge_html = ""
+            if tpl.get("badge_text"):
+                badge_html = (
+                    f'<span style="background:{tpl["badge_color"]};color:#fff;'
+                    f'padding:2px 8px;border-radius:10px;font-size:10px;'
+                    f'font-weight:700;letter-spacing:0.5px;margin-right:8px;">'
+                    f'{tpl["badge_text"]}</span>'
+                )
+
+            with st.expander(f'{badge_html} **{tpl["name"]}**', expanded=False):
+                st.markdown(f'**Subject:** {tpl["subject"]}')
+                st.markdown(f'**Heading:** {tpl["heading"]}')
+                if tpl.get("cta_text"):
+                    st.markdown(f'**CTA:** {tpl["cta_text"]} → `{tpl.get("cta_url", "")}`')
+                st.divider()
+                st.markdown("**Preview:**")
+                # Show body HTML rendered
+                preview_body = tpl["body_html"].replace("{APP_URL}", Config.APP_URL)
+                st.markdown(preview_body, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1248,6 +1533,8 @@ def main() -> None:
         _render_overview()
     elif "Users" in selected:
         _render_users()
+    elif "Email Center" in selected:
+        _render_email_center()
     elif "Telegram" in selected:
         _render_telegram()
     elif "Chat Logs" in selected:

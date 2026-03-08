@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 import uuid
 from typing import Any
@@ -24,6 +25,42 @@ import boto3
 from botocore.exceptions import ClientError
 
 from backend.config import Config
+
+
+# ── Emoji stripper ─────────────────────────────────────────────────────
+# Broad Unicode ranges covering emoji blocks so TTS engines don't
+# spell out "smiley face emoji", "star emoji", etc.
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"  # emoticons
+    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+    "\U0001F680-\U0001F6FF"  # transport & map
+    "\U0001F1E0-\U0001F1FF"  # flags
+    "\U0001FA00-\U0001FA6F"  # chess, extended-A
+    "\U0001FA70-\U0001FAFF"  # symbols extended-A
+    "\U00002702-\U000027B0"  # dingbats
+    "\U0000FE00-\U0000FE0F"  # variation selectors
+    "\U0000200D"             # zero width joiner
+    "\U000020E3"             # combining enclosing keycap
+    "\U00002600-\U000026FF"  # misc symbols (sun, cloud, etc.)
+    "\U00002300-\U000023FF"  # misc technical
+    "\U00002B50-\U00002B55"  # stars
+    "\U0000203C-\U00003299"  # misc CJK / enclosed
+    "\U0001F900-\U0001F9FF"  # supplemental symbols
+    "\U0001FA00-\U0001FA6F"  # extended-A chess
+    "]+",
+    flags=re.UNICODE,
+)
+
+
+def strip_emojis(text: str) -> str:
+    """Remove emoji characters from text so TTS doesn't read them aloud."""
+    if not text:
+        return text
+    cleaned = _EMOJI_RE.sub(" ", text)
+    # Collapse multiple spaces
+    cleaned = re.sub(r"  +", " ", cleaned).strip()
+    return cleaned
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +170,11 @@ class VoiceService:
             Audio bytes, or None on failure.
         """
         if not text or not text.strip():
+            return None
+
+        # Strip emojis so TTS doesn't read "smiley emoji" etc.
+        text = strip_emojis(text)
+        if not text:
             return None
 
         # ── gTTS fallback for Polly-unsupported Indian languages ──
