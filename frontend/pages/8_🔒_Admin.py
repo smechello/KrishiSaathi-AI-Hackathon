@@ -935,7 +935,7 @@ def _render_knowledge_base() -> None:
         rag = _get_rag()
         collections = rag.list_all_collections()
     except Exception as e:
-        st.error(f"Could not connect to ChromaDB: {e}")
+        st.error(f"Could not connect to Knowledge Base: {e}")
         return
 
     total_docs = sum(c["count"] for c in collections)
@@ -982,7 +982,7 @@ def _render_knowledge_base() -> None:
                         first_key = next(iter(list_keys))
                         st.json(raw[first_key][0] if raw[first_key] else {})
 
-                if st.button("🚀 Ingest into ChromaDB", key="kb_json_ingest", type="primary"):
+                if st.button("🚀 Ingest into Knowledge Base", key="kb_json_ingest", type="primary"):
                     with st.spinner("Embedding & ingesting…"):
                         count = rag.add_json_documents(raw, col_name.strip(), root_key.strip() or None)
                     st.success(f"✅ Ingested **{count}** documents into `{col_name}`")
@@ -1235,11 +1235,11 @@ def _render_configuration() -> None:
 
     with st.form("admin_config_form"):
         st.markdown("#### LLM Backend")
-        backend_options = ["groq", "gemini", "bedrock"]
+        backend_options = ["bedrock", "groq", "gemini"]
         backend_labels = {
-            "groq": "🟢 Groq Cloud (Legacy — Llama 3.x, Free Tier)",
-            "gemini": "🔵 Google Gemini (Legacy — Fallback)",
-            "bedrock": "🟠 AWS Bedrock (Production — Claude 3.5 Sonnet)",
+            "bedrock": "🟠 AWS Bedrock (Primary — Claude 3.5 Sonnet)",
+            "groq": "🟢 Groq Cloud (Fallback — Llama 3.x)",
+            "gemini": "🔵 Google Gemini (Fallback)",
         }
         cur_idx = backend_options.index(llm["backend"]) if llm["backend"] in backend_options else 0
         backend = st.selectbox(
@@ -1255,7 +1255,7 @@ def _render_configuration() -> None:
             )
 
         st.markdown("---")
-        st.markdown("#### Groq Models")
+        st.markdown("#### Fallback Models (Groq)")
         gc1, gc2, gc3 = st.columns(3)
         with gc1:
             groq_cls = st.text_input("Classifier", value=llm["groq_classifier"])
@@ -1264,7 +1264,7 @@ def _render_configuration() -> None:
         with gc3:
             groq_syn = st.text_input("Synthesis", value=llm["groq_synthesis"])
 
-        st.markdown("#### Gemini Models")
+        st.markdown("#### Fallback Models (Gemini)")
         gm1, gm2, gm3 = st.columns(3)
         with gm1:
             gem_cls = st.text_input("Classifier ", value=llm["gemini_classifier"])
@@ -1415,9 +1415,9 @@ def _render_system() -> None:
     ei2.markdown(f"**Streamlit:** {st.__version__}")
     ei3.markdown(f"**OS:** {platform.system()} {platform.release()}")
 
-    st.markdown(f"**Supabase Configured:** {'✅' if SupabaseManager.is_configured() else '❌'}")
-    st.markdown(f"**Groq API Key:** {'✅ Set' if Config.GROQ_API_KEY else '❌ Missing'}")
-    st.markdown(f"**Gemini API Key:** {'✅ Set' if Config.GEMINI_API_KEY else '❌ Missing'}")
+    st.markdown(f"**AWS RDS Database:** {'✅' if Config.RDS_HOST else '❌ Not configured'}")
+    st.markdown(f"**AWS Bedrock IAM:** {'✅ Attached' if Config.BEDROCK_REGION else '❌ Missing'}")
+    st.markdown(f"**Auth Backend:** {'✅' if SupabaseManager.is_configured() else '❌ Not configured'}")
     st.markdown(f"**OpenWeather Key:** {'✅ Set' if Config.OPENWEATHER_API_KEY else '❌ Missing'}")
 
     st.divider()

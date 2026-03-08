@@ -288,7 +288,7 @@ def render_sidebar() -> str:
             f"""
             <div class="ks-footer">
                 <p>Built with {heart} for Indian Farmers</p>
-                <p>Powered by Groq · Gemini · ChromaDB</p>
+                <p>Powered by AWS Bedrock · Polly · RDS</p>
                 <p style="margin-top:0.3rem;">© 2026 KrishiSaathi</p>
             </div>
             """,
