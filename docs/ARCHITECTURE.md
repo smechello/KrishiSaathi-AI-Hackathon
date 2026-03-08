@@ -23,51 +23,51 @@
 ## 1. High-Level Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     FRONTEND (Streamlit)                            │
-│  ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐│
-│  │ 💬 Chat  │ │🌱CropDoctor│ │💰 Market │ │🏛️ Schemes│ │🌤️/🧪  ││
-│  │   (Home) │ │  (Vision)  │ │  Prices  │ │  Advisor │ │Wtr/Soil││
-│  └──────────┘ └────────────┘ └──────────┘ └──────────┘ └────────┘│
+┌────────────────────────────────────────────────────────────────────┐
+│                     FRONTEND (Streamlit)                           │
+│  ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐  │
+│  │ 💬 Chat  │ │🌱CropDoctor│ │💰 Market │ │🏛️ Schemes│ │🌤️/🧪│  │
+│  │   (Home) │ │  (Vision)  │ │  Prices  │ │  Advisor │ │Wtr/Soil│  │
+│  └──────────┘ └────────────┘ └──────────┘ └──────────┘ └────────┘  │
 │                    ┌──────────────┐                                │
 │                    │ 🔒 Admin     │                                │
 │                    │  Console     │                                │
 │                    └──────────────┘                                │
-└──────────────────────┬──────────────────────────────────────────────┘
+└──────────────────────┬─────────────────────────────────────────────┘
                        │ Streamlit session / function calls
                        ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     BACKEND ORCHESTRATION                           │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │              KrishiSaathi (Facade — main.py)                 │  │
-│  │  • Boots RAG engine    • Creates SupervisorAgent             │  │
-│  │  • Exposes ask(query)  • Injects memory context              │  │
-│  └──────────────────────────┬───────────────────────────────────┘  │
-│                              │                                      │
+┌────────────────────────────────────────────────────────────────────┐
+│                     BACKEND ORCHESTRATION                          │
+│                                                                    │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │              KrishiSaathi (Facade — main.py)                  │ │
+│  │  • Boots RAG engine    • Creates SupervisorAgent              │ │
+│  │  • Exposes ask(query)  • Injects memory context               │ │
+│  └───────────────────────────┬───────────────────────────────────┘ │
+│                              │                                     │
 │  ┌───────────────────────────▼──────────────────────────────────┐  │
-│  │            SupervisorAgent (supervisor_agent.py)              │  │
+│  │            SupervisorAgent (supervisor_agent.py)             │  │
 │  │  1. Classify intent (LLM call)                               │  │
 │  │  2. Route to specialist agent(s)                             │  │
 │  │  3. Synthesize final response (LLM call)                     │  │
 │  └──┬──────┬──────┬──────┬──────┬───────────────────────────────┘  │
-│     │      │      │      │      │                                   │
+│     │      │      │      │      │                                  │
 │     ▼      ▼      ▼      ▼      ▼                                  │
-│  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐                         │
-│  │Crop  ││Market││Scheme││Weathr││ Soil │  ← 5 Specialist Agents  │
+│  ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐                          │
+│  │Crop  ││Market││Scheme││Weathr││ Soil │  ← 5 Specialist Agents   │
 │  │Doctor││Agent ││Agent ││Agent ││Expert│                          │
-│  └──┬───┘└──┬───┘└──┬───┘└──┬───┘└──┬───┘                         │
+│  └──┬───┘└──┬───┘└──┬───┘└──┬───┘└──┬───┘                          │
 │     └───────┴───────┴───┬───┴───────┘                              │
-│                         ▼                                           │
+│                         ▼                                          │
 │  ┌──────────────────────────────────────────────────────────────┐  │
-│  │                    Services Layer                             │  │
+│  │                    Services Layer                            │  │
 │  │  • LLMHelper (AWS Bedrock + fallback chain)                  │  │
 │  │  • RAGEngine (Vector Store + Titan embeddings)               │  │
 │  │  • MemoryEngine (Mem0-inspired user memory)                  │  │
 │  │  • DatabaseManager (Amazon RDS PostgreSQL)                   │  │
 │  │  • WeatherService, TranslationService, VoiceService          │  │
 │  └──────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────┘
                        │
           ┌────────────┼────────────┐
           ▼            ▼            ▼
@@ -172,16 +172,16 @@ User Query
                    │
                    ▼
 ┌──────────────────────────────────────────┐
-│ 2. ROUTE TO SPECIALIST(S)               │
-│    • Primary → CropDoctorAgent          │
-│    • Secondary → WeatherAgent (if any)  │
-│    • RAG context injected into prompt   │
-│    • Memory context injected            │
+│ 2. ROUTE TO SPECIALIST(S)                │
+│    • Primary → CropDoctorAgent           │
+│    • Secondary → WeatherAgent (if any)   │
+│    • RAG context injected into prompt    │
+│    • Memory context injected             │
 └──────────────────┬───────────────────────┘
                    │
                    ▼
 ┌──────────────────────────────────────────┐
-│ 3. SYNTHESIZE RESPONSE                  │
+│ 3. SYNTHESIZE RESPONSE                   │
 │    Combine specialist outputs →          │
 │    Single farmer-friendly answer         │
 │    with Markdown formatting              │
@@ -321,14 +321,14 @@ Login/Signup Page
        │
        ▼
 ┌─────────────────┐     ┌──────────────────┐
-│ frontend/       │────▶│ Auth Service      │
-│ components/     │     │ (email/password)  │
+│ frontend/       │───▶│ Auth Service     │
+│ components/     │     │ (email/password) │
 │ auth.py         │     └────────┬─────────┘
 │                 │              │
 │ require_auth()  │              ▼
 │ gate on every   │     ┌──────────────────┐
-│ page            │     │ profiles table    │
-└─────────────────┘     │ (RLS: own row)    │
+│ page            │     │ profiles table   │
+└─────────────────┘     │ (RLS: own row)   │
                         └──────────────────┘
 ```
 
@@ -367,7 +367,7 @@ User Message
 │  LLM Fact Extraction           │
 │  "I grow rice in Nalgonda"     │
 │  → { category: "crops",        │
-│       fact: "grows rice",       │
+│       fact: "grows rice",      │
 │       location: "Nalgonda" }   │
 └──────────────┬─────────────────┘
                │
