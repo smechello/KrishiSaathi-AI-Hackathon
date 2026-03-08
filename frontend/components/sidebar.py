@@ -8,6 +8,7 @@ import os
 import streamlit as st
 
 from backend.config import Config
+from backend.services.translation_service import translator
 from backend.services.supabase_service import SupabaseManager
 from backend.services.memory_engine import get_memory_engine
 from frontend.components.theme import (
@@ -79,6 +80,28 @@ QUICK_ACTIONS: dict[str, list[tuple[str, str, str]]] = {
 }
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _tr(text: str, lang: str) -> str:
+    """Translate short sidebar UI strings from English when needed."""
+    if not text or lang == "en":
+        return text
+    try:
+        return translator.from_english(text, dest=lang)
+    except Exception:
+        return text
+
+
+def _quick_actions(lang: str) -> list[tuple[str, str, str]]:
+    """Return quick actions in the selected language, translating as fallback."""
+    actions = QUICK_ACTIONS.get(lang)
+    if actions:
+        return actions
+    return [
+        (icon_name, _tr(label, lang), _tr(query, lang))
+        for icon_name, label, query in QUICK_ACTIONS["en"]
+    ]
+
+
 def render_sidebar() -> str:
     """Render the sidebar and return the selected language code."""
 
@@ -111,14 +134,13 @@ def render_sidebar() -> str:
         st.divider()
 
         # ── Theme Toggle ───────────────────────────────────────────────
-        theme_labels = {"light": "Light Mode", "dark": "Dark Mode"}
         sun_icon = icon("sun", size=16, color=p["accent"])
         moon_icon = icon("moon", size=16, color=p["info"])
 
         tcol1, tcol2 = st.columns([1, 1])
         with tcol1:
             if st.button(
-                "☀️ Light" if theme == "dark" else "☀️ Light",
+                f"☀️ {_tr('Light', st.session_state.get('language', 'en'))}",
                 key="theme_light",
                 use_container_width=True,
                 disabled=(theme == "light"),
@@ -127,7 +149,7 @@ def render_sidebar() -> str:
                 st.rerun()
         with tcol2:
             if st.button(
-                "🌙 Dark" if theme == "light" else "🌙 Dark",
+                f"🌙 {_tr('Dark', st.session_state.get('language', 'en'))}",
                 key="theme_dark",
                 use_container_width=True,
                 disabled=(theme == "dark"),
@@ -162,7 +184,7 @@ def render_sidebar() -> str:
                 unsafe_allow_html=True,
             )
 
-            if st.button("🚪 Sign Out", use_container_width=True, key="btn_logout"):
+            if st.button(f"🚪 {_tr('Sign Out', st.session_state.get('language', 'en'))}", use_container_width=True, key="btn_logout"):
                 SupabaseManager.sign_out()
                 # Flag for cookie clearing on next render (auth page will inject the JS)
                 st.session_state["_pending_cookie_clear"] = True
@@ -187,7 +209,7 @@ def render_sidebar() -> str:
         lang_icon = icon("language", size=18, color=p["primary"])
         st.markdown(
             f'<div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.3rem;">'
-            f'{lang_icon} <span style="font-weight:600; font-size:0.95rem;">Language / భాష</span></div>',
+            f'{lang_icon} <span style="font-weight:600; font-size:0.95rem;">{_tr("Language", st.session_state.get("language", "en"))}</span></div>',
             unsafe_allow_html=True,
         )
 
@@ -201,7 +223,7 @@ def render_sidebar() -> str:
             current_idx = 0
 
         selected_label = st.selectbox(
-            "Choose your language",
+            _tr("Choose your language", st.session_state.get("language", "en")),
             options=lang_labels,
             index=current_idx,
             key="lang_selector",
@@ -220,13 +242,9 @@ def render_sidebar() -> str:
 
         # ── Quick Actions ──────────────────────────────────────────────
         lang = st.session_state.get("language", "en")
-        actions = QUICK_ACTIONS.get(lang, QUICK_ACTIONS["en"])
+        actions = _quick_actions(lang)
 
-        qa_header = {
-            "en": "Quick Actions",
-            "te": "త్వరిత చర్యలు",
-            "hi": "त्वरित कार्य",
-        }.get(lang, "Quick Actions")
+        qa_header = _tr("Quick Actions", lang)
 
         zap_icon = icon("zap", size=18, color=p["accent"])
         st.markdown(

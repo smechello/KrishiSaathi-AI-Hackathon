@@ -54,8 +54,18 @@ _LABELS: dict[str, dict[str, str]] = {
 
 
 def _label(lang: str, key: str) -> str:
-    """Get localised label."""
-    return _LABELS.get(lang, _LABELS["en"]).get(key, _LABELS["en"][key])
+    """Get localised label, translating the English fallback when needed."""
+    lang_map = _LABELS.get(lang)
+    if lang_map and key in lang_map:
+        return lang_map[key]
+    base = _LABELS["en"][key]
+    if lang == "en":
+        return base
+    try:
+        from backend.services.translation_service import translator
+        return translator.from_english(base, dest=lang)
+    except Exception:
+        return base
 
 
 # ═══════════════════════════════════════════════════════════════════════

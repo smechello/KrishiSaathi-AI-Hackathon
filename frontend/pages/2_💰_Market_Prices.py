@@ -133,7 +133,16 @@ _UI: dict[str, dict[str, str]] = {
 
 
 def _ui(lang: str, key: str) -> str:
-    return _UI.get(lang, _UI["en"]).get(key, _UI["en"][key])
+    lang_map = _UI.get(lang)
+    if lang_map and key in lang_map:
+        return lang_map[key]
+    base = _UI["en"][key]
+    if lang == "en":
+        return base
+    try:
+        return translator.from_english(base, dest=lang)
+    except Exception:
+        return base
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
