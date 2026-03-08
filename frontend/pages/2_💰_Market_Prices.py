@@ -559,9 +559,10 @@ def _render_ai_advisor(
     )
 
     if ask_btn and (query or voice_q):
-        query_en = query or voice_q or ""
+        query_src = query or voice_q or ""
+        query_en = query_src
         if lang != "en":
-            query_en = translator.to_english(query, src=lang)
+            query_en = translator.to_english(query_src, src=lang)
 
         with st.spinner(_ui(lang, "thinking")):
             start = time.time()
@@ -581,16 +582,11 @@ def _render_ai_advisor(
                     if lang != "en":
                         summary = translator.from_english(summary, dest=lang)
 
-                st.subheader(f"📋 {_ui(lang, 'summary_header')}")
-                st.markdown(summary)
-
-                render_voice_output(summary, language=lang, key_suffix="market_adv")
-
-                if sources:
-                    src_str = " · ".join(f"`{s}`" for s in sources)
-                    st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
-
-                st.caption(f"⏱️ {elapsed:.1f}s")
+                st.session_state["market_adv_result"] = {
+                    "summary": summary,
+                    "sources": sources,
+                    "elapsed": elapsed,
+                }
 
             except Exception as exc:
                 logger.error("Market advisor error: %s", exc, exc_info=True)
@@ -598,6 +594,16 @@ def _render_ai_advisor(
 
     elif ask_btn and not query:
         st.warning(_ui(lang, "no_data"))
+
+    result = st.session_state.get("market_adv_result")
+    if result:
+        st.subheader(f"📋 {_ui(lang, 'summary_header')}")
+        st.markdown(result.get("summary", ""))
+        render_voice_output(result.get("summary", ""), language=lang, key_suffix="market_adv")
+        if result.get("sources"):
+            src_str = " · ".join(f"`{s}`" for s in result.get("sources", []))
+            st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
+        st.caption(f"⏱️ {result.get('elapsed', 0):.1f}s")
 
     # ── Quick question buttons ─────────────────────────────────────────
     st.divider()

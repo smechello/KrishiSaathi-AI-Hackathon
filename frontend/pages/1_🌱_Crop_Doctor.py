@@ -212,6 +212,7 @@ def main() -> None:
                     st.markdown(f"{i}. **{_t(tip, lang)}**")
 
         with col_result:
+            img_result = st.session_state.get("crop_img_result")
             if diagnose_img:
                 if not uploaded:
                     st.warning(_ui(lang, "no_image"))
@@ -243,22 +244,30 @@ def main() -> None:
                                 diagnosis = translator.ensure_english(diagnosis)
                                 if lang != "en":
                                     diagnosis = translator.from_english(diagnosis, dest=lang)
-
-                            st.subheader(f"📋 {_ui(lang, 'results')}")
-                            st.markdown(diagnosis)
-
-                            # TTS listen button
-                            render_voice_output(diagnosis, language=lang, key_suffix="img_diag")
-
-                            if sources:
-                                src_str = " · ".join(f"`{s}`" for s in sources)
-                                st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
-
-                            st.caption(f"⏱️ {elapsed:.1f}s")
+                            st.session_state["crop_img_result"] = {
+                                "diagnosis": diagnosis,
+                                "sources": sources,
+                                "elapsed": elapsed,
+                            }
 
                         except Exception as exc:
                             logger.error("Image diagnosis error: %s", exc, exc_info=True)
                             st.error(f"{_t('Diagnosis failed', lang)}: {exc}")
+
+            img_result = st.session_state.get("crop_img_result")
+
+            if img_result:
+                st.subheader(f"📋 {_ui(lang, 'results')}")
+                st.markdown(img_result.get("diagnosis", ""))
+                render_voice_output(
+                    img_result.get("diagnosis", ""),
+                    language=lang,
+                    key_suffix="img_diag",
+                )
+                if img_result.get("sources"):
+                    src_str = " · ".join(f"`{s}`" for s in img_result.get("sources", []))
+                    st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
+                st.caption(f"⏱️ {img_result.get('elapsed', 0):.1f}s")
 
     # ================================================================
     # TAB 2: TEXT DIAGNOSIS
@@ -299,6 +308,7 @@ def main() -> None:
                 _render_common_diseases()
 
         with col_output:
+            txt_result = st.session_state.get("crop_txt_result")
             if diagnose_txt:
                 effective_symptoms = symptoms or voice_symptom or ""
                 if not effective_symptoms:
@@ -327,22 +337,30 @@ def main() -> None:
                                 diagnosis = translator.ensure_english(diagnosis)
                                 if lang != "en":
                                     diagnosis = translator.from_english(diagnosis, dest=lang)
-
-                            st.subheader(f"📋 {_ui(lang, 'results')}")
-                            st.markdown(diagnosis)
-
-                            # TTS listen button
-                            render_voice_output(diagnosis, language=lang, key_suffix="txt_diag")
-
-                            if sources:
-                                src_str = " · ".join(f"`{s}`" for s in sources)
-                                st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
-
-                            st.caption(f"⏱️ {elapsed:.1f}s")
+                            st.session_state["crop_txt_result"] = {
+                                "diagnosis": diagnosis,
+                                "sources": sources,
+                                "elapsed": elapsed,
+                            }
 
                         except Exception as exc:
                             logger.error("Text diagnosis error: %s", exc, exc_info=True)
                             st.error(f"{_t('Diagnosis failed', lang)}: {exc}")
+
+            txt_result = st.session_state.get("crop_txt_result")
+
+            if txt_result:
+                st.subheader(f"📋 {_ui(lang, 'results')}")
+                st.markdown(txt_result.get("diagnosis", ""))
+                render_voice_output(
+                    txt_result.get("diagnosis", ""),
+                    language=lang,
+                    key_suffix="txt_diag",
+                )
+                if txt_result.get("sources"):
+                    src_str = " · ".join(f"`{s}`" for s in txt_result.get("sources", []))
+                    st.caption(f"📚 {_t('Sources', lang)}: {src_str}")
+                st.caption(f"⏱️ {txt_result.get('elapsed', 0):.1f}s")
 
 
 def _render_common_diseases() -> None:
