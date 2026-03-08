@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from frontend.components.sidebar import render_sidebar          # noqa: E402
 from frontend.components.auth import require_auth               # noqa: E402
-from frontend.components.voice import (                         # noqa: E402
+from frontend.components.voice_input import (                   # noqa: E402
     render_voice_input,
     render_voice_output,
 )
